@@ -73,11 +73,11 @@ async function updateCache() {
   }
 }
 
-// initial load + every 5 minutes
+// initial load + every 1 minute
 (async () => {
   await updateCache();
 })();
-cron.schedule("*/5 * * * *", updateCache);
+cron.schedule("* * * * *", updateCache);
 
 /**
  * GET /api/markets
