@@ -210,7 +210,7 @@ io.on("connection", (socket) => {
 });
 
 /**
- * Cron: every minute, check non-triggered in-memory alerts
+ * Cron: every 10 seconds, check non-triggered in-memory alerts
  */
 cron.schedule('*/10 * * * * *', async () => {
   for (const alert of alertsInMemory.filter((a) => !a.triggered)) {
