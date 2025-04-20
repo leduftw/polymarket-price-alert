@@ -218,8 +218,8 @@ cron.schedule('*/10 * * * * *', async () => {
       const price = await fetchPrice(alert.marketId, alert.outcomeIndex);
       const hit =
         alert.direction === "below"
-          ? price < alert.threshold
-          : price > alert.threshold;
+          ? price <= alert.threshold
+          : price >= alert.threshold;
       if (hit) {
         alert.triggered = true;
         io.to(alert.socketId).emit("alertTriggered", {
