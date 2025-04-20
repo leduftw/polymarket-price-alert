@@ -67,13 +67,20 @@ async function updateCache() {
       id: m.id,
       question: m.question,
     }));
-    console.log(`Cached ${cachedMarkets.length} active markets`);
+    if (updateMarketCount === 0) {
+      console.log(`Loaded ${cachedMarkets.length} active markets`);
+    } else {
+      console.log(`Cached ${cachedMarkets.length} active markets`);
+    }
+    updateMarketCount++;
   } catch (err) {
     console.error("Failed to refresh market cache:", err.message);
   }
 }
 
 // initial load + every 1 minute
+let updateMarketCount = 0;
+console.log(`Loading all active markets (max ${PAGE_SIZE * MAX_PAGES})...`);
 (async () => {
   await updateCache();
 })();
