@@ -15,8 +15,8 @@ const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: "*" } });
 
 const GAMMA_API = "https://gamma-api.polymarket.com";
-const PAGE_SIZE = 100;
-const MAX_PAGES = 20;
+const PAGE_SIZE = 500;
+const MAX_PAGES = 10;
 
 // — Load persisted alerts from alerts.json —
 const alertsFile = path.join(__dirname, "alerts.json");
