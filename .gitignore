@@ -27,3 +27,11 @@ frontend/coverage
 # misc
 frontend/.DS_Store
 backend/endpoints.txt
+
+# ignore everything under .vscode...
+.vscode/*
+
+# but keep these project‑wide files
+!.vscode/extensions.json
+!.vscode/launch.json
+!.vscode/tasks.json
