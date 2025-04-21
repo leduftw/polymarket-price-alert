@@ -1,13 +1,29 @@
+// getMarketById/index.js
+const fetch = require("node-fetch");
+const { GAMMA_API } = { GAMMA_API: "https://gamma-api.polymarket.com" };
+
 module.exports = async function (context, req) {
-    context.log('JavaScript HTTP trigger function processed a request.');
+  const id = req.params.id;
+  const r = await fetch(`${GAMMA_API}/markets/${id}`);
+  if (!r.ok) {
+    context.res = { status: 502, body: `Gamma → ${r.status}` };
+    return;
+  }
+  const m = await r.json();
+  let { outcomes, outcomePrices } = m;
+  if (typeof outcomes === "string") outcomes = JSON.parse(outcomes);
+  if (typeof outcomePrices === "string")
+    outcomePrices = JSON.parse(outcomePrices);
 
-    const name = (req.query.name || (req.body && req.body.name));
-    const responseMessage = name
-        ? "Hello, " + name + ". This HTTP triggered function executed successfully."
-        : "This HTTP triggered function executed successfully. Pass a name in the query string or in the request body for a personalized response.";
-
-    context.res = {
-        // status: 200, /* Defaults to 200 */
-        body: responseMessage
-    };
-}
+  context.res = {
+    body: {
+      id: m.id,
+      question: m.question,
+      outcomes: outcomes.map((label, i) => ({
+        id: i,
+        label,
+        price: outcomePrices[i],
+      })),
+    },
+  };
+};
