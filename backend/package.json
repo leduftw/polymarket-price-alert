@@ -1,5 +1,5 @@
 {
-  "name": "polymarket-alert-server",
+  "name": "polymarket-price-alert-backend",
   "version": "1.0.0",
   "scripts": {
     "start": "func start"
