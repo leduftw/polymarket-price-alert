@@ -6,7 +6,7 @@
       "direction": "in",
       "name": "req",
       "methods": ["post"],
-      "route": "alerts"
+      "route": "active-alerts"
     },
     { "type": "http", "direction": "out", "name": "res" }
   ]

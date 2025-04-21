@@ -3,8 +3,8 @@ const { listActiveAlerts, isValidAlert, marketExists } = require("../shared");
 
 module.exports = async function (context) {
   const allActiveAlerts = await listActiveAlerts();
-  const validAlerts = allActiveAlerts.filter(
+  const validActiveAlerts = allActiveAlerts.filter(
     (a) => isValidAlert(a) && marketExists(a.marketId)
   );
-  context.res = { body: validAlerts };
+  context.res = { body: validActiveAlerts };
 };

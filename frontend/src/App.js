@@ -36,7 +36,7 @@ function App() {
   useEffect(() => {
     (async () => {
       try {
-        const raw = await fetch("/api/alerts").then((r) => r.json());
+        const raw = await fetch("/api/active-alerts").then((r) => r.json());
         const enriched = await Promise.all(
           raw.map(async (a) => {
             const det = await fetch(`/api/markets/${a.marketId}`).then((r) =>
@@ -112,7 +112,7 @@ function App() {
   }
   const isSubmitDisabled = Boolean(thresholdError);
 
-  // 5) form submit: call POST /api/alerts
+  // 5) form submit: call POST /api/active-alerts
   const handleSubmit = async (e) => {
     e.preventDefault();
     // client‑side duplicate check
@@ -137,7 +137,7 @@ function App() {
         threshold: threshold,
         direction: form.direction,
       };
-      const res = await fetch("/api/alerts", {
+      const res = await fetch("/api/active-alerts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),

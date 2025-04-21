@@ -88,6 +88,13 @@ async function listActiveAlerts() {
   return resources;
 }
 
+async function listCompletedAlerts() {
+  const { resources } = await completedContainer.items
+    .query("SELECT * FROM c")
+    .fetchAll();
+  return resources;
+}
+
 async function upsertActiveAlert(alert) {
   await activeContainer.items.upsert(alert);
 }
@@ -134,6 +141,7 @@ module.exports = {
 
   // alerts
   listActiveAlerts,
+  listCompletedAlerts,
   upsertActiveAlert,
   deleteActiveAlert,
   upsertCompletedAlert,
