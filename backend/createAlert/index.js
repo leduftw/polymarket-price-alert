@@ -1,13 +1,31 @@
+// createAlert/index.js
+const { upsertAlert, listAlerts } = require("../shared");
+
 module.exports = async function (context, req) {
-    context.log('JavaScript HTTP trigger function processed a request.');
+  const { marketId, outcomeIndex, threshold, direction } = req.body;
 
-    const name = (req.query.name || (req.body && req.body.name));
-    const responseMessage = name
-        ? "Hello, " + name + ". This HTTP triggered function executed successfully."
-        : "This HTTP triggered function executed successfully. Pass a name in the query string or in the request body for a personalized response.";
+  // basic validation...
+  if (!marketId || typeof threshold !== "number") {
+    context.res = { status: 400, body: "Invalid payload" };
+    return;
+  }
 
-    context.res = {
-        // status: 200, /* Defaults to 200 */
-        body: responseMessage
-    };
-}
+  // duplicate check
+  const existing = (await listAlerts()).some(
+    (a) =>
+      a.marketId === marketId &&
+      a.outcomeIndex === outcomeIndex &&
+      a.threshold === threshold &&
+      a.direction === direction
+  );
+  if (existing) {
+    context.res = { status: 409, body: "Duplicate alert" };
+    return;
+  }
+
+  const id = Date.now().toString();
+  const alert = { id, marketId, outcomeIndex, threshold, direction };
+  await upsertAlert(alert);
+
+  context.res = { status: 201, body: alert };
+};
