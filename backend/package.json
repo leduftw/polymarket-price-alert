@@ -1,9 +1,8 @@
 {
   "name": "polymarket-alert-server",
   "version": "1.0.0",
-  "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "func start"
   },
   "dependencies": {
     "@azure/cosmos": "^4.3.0",
