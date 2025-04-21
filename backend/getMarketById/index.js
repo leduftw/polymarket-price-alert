@@ -6,7 +6,7 @@ module.exports = async function (context, req) {
   const id = req.params.id;
   const r = await fetch(`${GAMMA_API}/markets/${id}`);
   if (!r.ok) {
-    context.res = { status: 502, body: `Gamma → ${r.status}` };
+    context.res = { status: 502, body: `Gamma /markets/${id} → ${r.status}` };
     return;
   }
   const m = await r.json();

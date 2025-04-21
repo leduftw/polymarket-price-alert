@@ -1,12 +1,29 @@
 // createAlert/index.js
-const { upsertAlert, listAlerts } = require("../shared");
+const {
+  isValidAlert,
+  marketExists,
+  listAlerts,
+  upsertAlert,
+} = require("../shared");
 
 module.exports = async function (context, req) {
   const { marketId, outcomeIndex, threshold, direction } = req.body;
 
-  // basic validation...
-  if (!marketId || typeof threshold !== "number") {
-    context.res = { status: 400, body: "Invalid payload" };
+  // alert validation
+  const probe = {
+    id: "probe",
+    marketId,
+    outcomeIndex,
+    threshold,
+    direction,
+  };
+  if (!isValidAlert(probe) || !marketExists(marketId)) {
+    context.res = {
+      status: 400,
+      body: !isValidAlert(probe)
+        ? "Invalid alert payload."
+        : `Market ${marketId} not found.`,
+    };
     return;
   }
 

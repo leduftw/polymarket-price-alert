@@ -25,8 +25,10 @@ function App() {
       typeof a.marketId === "string" &&
       Number.isInteger(a.outcomeIndex) &&
       ["above", "below"].includes(a.direction) &&
-      typeof a.threshold === "number";
-    if (!ok) console.warn("⚠️ Skipping invalid alert:", a);
+      typeof a.threshold === "number" &&
+      (a.threshold > 0 && a.threshold < 1);
+    if (!ok)
+      console.warn(`Skipping invalid alert due to bad schema (id: ${a.id})`);
     return ok;
   };
   // ───────────────────────────────────────────────────────────────────────────
