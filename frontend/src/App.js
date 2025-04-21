@@ -1,11 +1,9 @@
 // src/App.js
 
 import React, { useState, useEffect } from "react";
-import io from "socket.io-client";
 import "./App.css";
 
 function App() {
-  const [socket] = useState(() => io("http://localhost:3001"));
   const [markets, setMarkets] = useState([]);
   const [query, setQuery] = useState("");
   const [detail, setDetail] = useState(null);
@@ -13,12 +11,13 @@ function App() {
   const [form, setForm] = useState({
     marketId: "",
     outcomeIndex: 0,
-    thresholdDigits: "80", // represents 0.80
+    thresholdDigits: "20", // represents 0.20
     direction: "below",
   });
   const [status, setStatus] = useState("");
 
-  // ─── helper: drop any alert missing its required fields ────────────────────
+  // ────────────────────────────────────────────────────────────────────────────
+  // helper: drop any alert missing its required fields
   const isValidAlert = (a) => {
     const ok =
       typeof a.id === "string" &&
@@ -26,23 +25,23 @@ function App() {
       Number.isInteger(a.outcomeIndex) &&
       ["above", "below"].includes(a.direction) &&
       typeof a.threshold === "number" &&
-      (a.threshold > 0 && a.threshold < 1);
-    if (!ok)
-      console.warn(`Skipping invalid alert due to bad schema (id: ${a.id})`);
+      a.threshold > 0 &&
+      a.threshold < 1;
+    if (!ok) console.warn(`Skipping invalid alert (id: ${a.id})`);
     return ok;
   };
-  // ───────────────────────────────────────────────────────────────────────────
+  // ────────────────────────────────────────────────────────────────────────────
 
-  // 1) Load persisted alerts & enrich with question+label
+  // 1) load persisted alerts on mount
   useEffect(() => {
     (async () => {
       try {
-        const res = await fetch("/api/alerts");
-        const raw = await res.json();
+        const raw = await fetch("/api/alerts").then((r) => r.json());
         const enriched = await Promise.all(
           raw.map(async (a) => {
-            const resp = await fetch(`/api/markets/${a.marketId}`);
-            const det = await resp.json();
+            const det = await fetch(`/api/markets/${a.marketId}`).then((r) =>
+              r.json()
+            );
             return {
               ...a,
               question: det.question,
@@ -58,7 +57,7 @@ function App() {
     })();
   }, []);
 
-  // 2) Fetch market summaries when `query` changes
+  // 2) fetch market summaries when `query` changes
   useEffect(() => {
     const url =
       "/api/markets" + (query ? `?q=${encodeURIComponent(query)}` : "");
@@ -68,12 +67,9 @@ function App() {
       .catch((err) => console.error("Fetch markets error", err));
   }, [query]);
 
-  // 3) Fetch market details when marketId changes
+  // 3) fetch details for selected market
   useEffect(() => {
-    if (!form.marketId) {
-      setDetail(null);
-      return;
-    }
+    if (!form.marketId) return setDetail(null);
     fetch(`/api/markets/${form.marketId}`)
       .then((r) => r.json())
       .then((data) => {
@@ -87,100 +83,39 @@ function App() {
       .catch((err) => console.error("Fetch detail error", err));
   }, [form.marketId]);
 
-  // 4) Request notification permission on load
+  // 4) notify permission
   useEffect(() => {
     if (Notification.permission === "default") {
       Notification.requestPermission();
     }
   }, []);
 
-  // 5) Handle socket events
-  useEffect(() => {
-    socket.on("alertCreated", async () => {
-      setStatus("Alert created! 🎉");
-      try {
-        const raw = await (await fetch("/api/alerts")).json();
-        const enriched = await Promise.all(
-          raw.map(async (a) => {
-            const det = await (
-              await fetch(`/api/markets/${a.marketId}`)
-            ).json();
-            return {
-              ...a,
-              question: det.question,
-              label: det.outcomes[a.outcomeIndex]?.label || "",
-              triggered: false,
-            };
-          })
-        );
-        setAlertsList(enriched.filter(isValidAlert));
-      } catch (err) {
-        console.error("Error reloading alerts", err);
-      }
-      setTimeout(() => setStatus(""), 3000);
-    });
-
-    socket.on("alertError", ({ message }) => {
-      setStatus(message);
-      setTimeout(() => setStatus(""), 3000);
-    });
-
-    socket.on("alertTriggered", ({ marketId, outcomeIndex, price }) => {
-      setAlertsList((prev) =>
-        prev.map((a) =>
-          a.marketId === marketId && a.outcomeIndex === outcomeIndex
-            ? { ...a, triggered: true }
-            : a
-        )
-      );
-      const a = alertsList.find(
-        (x) => x.marketId === marketId && x.outcomeIndex === outcomeIndex
-      );
-      if (a) {
-        new Notification("Price Alert!", {
-          body: `${a.question}\n"${a.label}" is now ${price.toFixed(2)}`,
-        });
-      }
-    });
-
-    return () => {
-      socket.off("alertCreated");
-      socket.off("alertError");
-      socket.off("alertTriggered");
-    };
-  }, [socket, alertsList]);
-
-  // ─── threshold: derive numeric value & validate ────────────────────────────
+  // compute numeric threshold & validation
   const threshold = parseFloat(`0.${form.thresholdDigits}`);
   const currentPrice = detail?.outcomes[form.outcomeIndex]?.price ?? 0;
-  // round to two decimals to match the UI
   const displayedPrice = parseFloat(currentPrice.toFixed(2));
-
   let thresholdError = "";
   if (detail) {
     if (form.direction === "above") {
-      // strictly greater than the displayed price, and ≤ 0.99
       if (threshold <= displayedPrice || threshold > 0.99) {
         thresholdError = `For “Above”, must be > ${displayedPrice.toFixed(
           2
-        )} and ≤ 0.99.`;
+        )} and ≤ 0.99.`;
       }
     } else {
-      // strictly less than the displayed price, and ≥ 0.01
       if (threshold < 0.01 || threshold >= displayedPrice) {
-        thresholdError = `For “Below”, must be ≥ 0.01 and < ${displayedPrice.toFixed(
+        thresholdError = `For “Below”, must be ≥ 0.01 and < ${displayedPrice.toFixed(
           2
         )}.`;
       }
     }
   }
-
   const isSubmitDisabled = Boolean(thresholdError);
-  // ───────────────────────────────────────────────────────────────────────────
 
-  // 6) Form submission: create alert
-  const handleSubmit = (e) => {
+  // 5) form submit: call POST /api/alerts
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    // client‑side duplicate check
     if (
       alertsList.some(
         (a) =>
@@ -194,12 +129,44 @@ function App() {
       setTimeout(() => setStatus(""), 3000);
       return;
     }
-    socket.emit("createAlert", {
-      marketId: form.marketId,
-      outcomeIndex: form.outcomeIndex,
-      threshold,
-      direction: form.direction,
-    });
+
+    try {
+      const payload = {
+        marketId: form.marketId,
+        outcomeIndex: form.outcomeIndex,
+        threshold: threshold,
+        direction: form.direction,
+      };
+      const res = await fetch("/api/alerts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(text || res.status);
+      }
+
+      const newAlert = await res.json();
+      // fetch question+label for display
+      const det = await fetch(`/api/markets/${newAlert.marketId}`).then((r) =>
+        r.json()
+      );
+      const enriched = {
+        ...newAlert,
+        question: det.question,
+        label: det.outcomes[newAlert.outcomeIndex]?.label || "",
+        triggered: false,
+      };
+      setAlertsList((list) => [...list, enriched]);
+      setStatus("Alert created! 🎉");
+      setTimeout(() => setStatus(""), 3000);
+    } catch (err) {
+      console.error("Error creating alert", err);
+      setStatus("Failed to create alert.");
+      setTimeout(() => setStatus(""), 3000);
+    }
   };
 
   return (
@@ -209,7 +176,7 @@ function App() {
     >
       <h1>Polymarket Price Alerts</h1>
 
-      {/* Search box */}
+      {/* Search */}
       <input
         type="search"
         placeholder="Search markets…"
@@ -219,7 +186,7 @@ function App() {
       />
 
       <form onSubmit={handleSubmit}>
-        {/* Market selector */}
+        {/* Market */}
         <div style={{ marginBottom: "1rem" }}>
           <label>
             Market
@@ -246,7 +213,7 @@ function App() {
           </label>
         </div>
 
-        {/* Outcome selector */}
+        {/* Outcome */}
         {detail && (
           <div style={{ marginBottom: "1rem" }}>
             <label>
@@ -269,7 +236,7 @@ function App() {
           </div>
         )}
 
-        {/* Above/Below */}
+        {/* Condition */}
         {detail && (
           <div style={{ marginBottom: "1rem" }}>
             <label>
@@ -289,7 +256,7 @@ function App() {
           </div>
         )}
 
-        {/* Threshold input */}
+        {/* Threshold */}
         <div style={{ marginBottom: "1rem" }}>
           <label>
             Threshold
@@ -320,7 +287,7 @@ function App() {
                 }}
                 required
                 style={{
-                  flex: "1",
+                  flex: 1,
                   border: "1px solid #ccc",
                   borderLeft: "none",
                   borderRadius: "0 4px 4px 0",
@@ -349,7 +316,7 @@ function App() {
 
       {status && <p style={{ marginTop: "1rem" }}>{status}</p>}
 
-      {/* Current Alerts */}
+      {/* Your Alerts */}
       {alertsList.length > 0 && (
         <div style={{ marginTop: "2rem" }}>
           <h2>Your Alerts</h2>
