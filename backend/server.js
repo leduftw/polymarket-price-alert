@@ -1,12 +1,12 @@
 // server.js
 
+require("dotenv").config();
 const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
 const cron = require("node-cron");
 const fetch = require("node-fetch"); // v2.x
-const fs = require("fs");
-const path = require("path");
+const { CosmosClient } = require("@azure/cosmos");
 
 const app = express();
 app.use(express.json());
@@ -14,29 +14,67 @@ app.use(express.json());
 const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: "*" } });
 
+// ── Polymarket API config ─────────────────────────────────────────────────────
 const GAMMA_API = "https://gamma-api.polymarket.com";
-const PAGE_SIZE = 500;
-const MAX_PAGES = 10;
+const PAGE_SIZE = 500,
+  MAX_PAGES = 10;
 
-// — Load persisted alerts from alerts.json —
-const alertsFile = path.join(__dirname, "alerts.json");
-let persistedAlerts = [];
-try {
-  const raw = fs.readFileSync(alertsFile, "utf-8");
-  persistedAlerts = JSON.parse(raw);
-} catch (_) {
-  persistedAlerts = [];
+// ── Cosmos DB setup ──────────────────────────────────────────────────────────
+const cosmosEndpoint = process.env.COSMOS_ENDPOINT;
+const cosmosKey = process.env.COSMOS_KEY;
+if (!cosmosEndpoint || !cosmosKey) {
+  console.error("Missing COSMOS_ENDPOINT or COSMOS_KEY in env");
+  process.exit(1);
 }
 
-// — In‑memory alerts for live notifications (socketId + triggered) —
-let alertsInMemory = [];
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = 0;
 
-// — In‑memory cache of active market summaries —
-let cachedMarkets = [];
+const cosmosClient = new CosmosClient({
+  endpoint: cosmosEndpoint,
+  key: cosmosKey,
+});
 
-/**
- * Fetch one page of active markets
- */
+// ensure AlertsDB database & Alerts container exist (with /marketId partition key)
+let database, container;
+(async () => {
+  const { database: db } = await cosmosClient.databases.createIfNotExists({
+    id: "AlertsDB",
+  });
+  database = db;
+  const { container: cont } = await database.containers.createIfNotExists({
+    id: "Alerts",
+    partitionKey: { kind: "Hash", paths: ["/marketId"] },
+  });
+  container = cont;
+  console.log("✅ Cosmos DB database and container are ready");
+})();
+
+// ── In‐memory state ───────────────────────────────────────────────────────────
+let persistedAlerts = []; // durable alerts from Cosmos
+let alertsInMemory = []; // runtime view with socketId+triggered
+let cachedMarkets = []; // for /api/markets
+
+// ── Alert validation helpers ────────────────────────────────────────────────
+function isValidAlert(a) {
+  const schemaOk =
+    typeof a.id === "string" &&
+    typeof a.marketId === "string" &&
+    Number.isInteger(a.outcomeIndex) &&
+    ["above", "below"].includes(a.direction) &&
+    typeof a.threshold === "number";
+  if (!schemaOk) {
+    console.warn(`Skipping invalid alert (id: ${a.id}) due to bad schema`);
+    return false;
+  }
+  return true;
+}
+
+function marketExists(id) {
+  // since updateCache() has already filled cachedMarkets
+  return cachedMarkets.some((m) => m.id === id);
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
 async function fetchMarketsPage(limit = PAGE_SIZE, offset = 0) {
   const url = new URL(`${GAMMA_API}/markets`);
   url.searchParams.set("active", "true");
@@ -50,47 +88,70 @@ async function fetchMarketsPage(limit = PAGE_SIZE, offset = 0) {
   return res.json();
 }
 
-/**
- * Refresh the market cache (up to PAGE_SIZE*MAX_PAGES items)
- */
 async function updateCache() {
   try {
     let all = [];
     for (let page = 0; page < MAX_PAGES; page++) {
-      const offset = page * PAGE_SIZE;
-      const batch = await fetchMarketsPage(PAGE_SIZE, offset);
+      const batch = await fetchMarketsPage(PAGE_SIZE, page * PAGE_SIZE);
       if (!batch.length) break;
       all.push(...batch);
       if (batch.length < PAGE_SIZE) break;
     }
-    cachedMarkets = all.map((m) => ({
-      id: m.id,
-      question: m.question,
-    }));
-    if (updateMarketCount === 0) {
-      console.log(`Loaded ${cachedMarkets.length} active markets`);
-    } else {
-      console.log(`Cached ${cachedMarkets.length} active markets`);
-    }
-    updateMarketCount++;
+    cachedMarkets = all.map((m) => ({ id: m.id, question: m.question }));
+    console.log(`Cached ${cachedMarkets.length} active markets`);
   } catch (err) {
     console.error("Failed to refresh market cache:", err.message);
   }
 }
 
-// initial load + every 1 minute
-let updateMarketCount = 0;
-console.log(`Loading all active markets (max ${PAGE_SIZE * MAX_PAGES})...`);
+// Load persisted alerts from Cosmos on startup
+async function loadPersistedAlerts() {
+  try {
+    const querySpec = { query: "SELECT * FROM c" };
+    const { resources } = await container.items.query(querySpec).fetchAll();
+
+    // filter out any alerts with missing fields or missing markets
+    persistedAlerts = resources.filter((a) => {
+      if (!isValidAlert(a)) return false;
+      if (!marketExists(a.marketId)) {
+        console.warn(`Skipping alert (id: ${a.id}) for missing market ${a.marketId}`);
+        return false;
+      }
+      return true;
+    });
+
+    console.log(`Loaded ${persistedAlerts.length} persisted alerts`);
+  } catch (err) {
+    console.error("Error loading persisted alerts:", err.message);
+  }
+}
+
+// Fetch the current price of one outcome
+async function fetchPrice(marketId, outcomeIndex) {
+  const resp = await fetch(`${GAMMA_API}/markets/${marketId}`);
+  if (!resp.ok) throw new Error(`Gamma /markets/${marketId} → ${resp.status}`);
+  const m = await resp.json();
+  let prices = m.outcomePrices;
+  if (typeof prices === "string") prices = JSON.parse(prices);
+  return parseFloat(prices[outcomeIndex]);
+}
+
+// Upsert an alert into Cosmos
+async function upsertAlertInCosmos(alert) {
+  // ensure 'id' and 'marketId' are present for partitioning
+  await container.items.upsert(alert);
+}
+
+// ── Startup: cache & load alerts ──────────────────────────────────────────────
 (async () => {
   await updateCache();
+  await loadPersistedAlerts();
 })();
 cron.schedule("* * * * *", updateCache);
 
-/**
- * GET /api/markets
- * Returns up to 20 active market summaries [{ id, question }],
- * optionally filtered by ?q=
- */
+// ── HTTP endpoints ───────────────────────────────────────────────────────────
+
+// List active markets, optional search ?q=
 app.get("/api/markets", (req, res) => {
   const { q } = req.query;
   let list = cachedMarkets;
@@ -101,10 +162,7 @@ app.get("/api/markets", (req, res) => {
   res.json(list.slice(0, 20));
 });
 
-/**
- * GET /api/markets/:id
- * Returns full details (outcomes & prices) for one market
- */
+// Market details (outcomes + prices)
 app.get("/api/markets/:id", async (req, res) => {
   try {
     const resp = await fetch(`${GAMMA_API}/markets/${req.params.id}`);
@@ -135,35 +193,20 @@ app.get("/api/markets/:id", async (req, res) => {
   }
 });
 
-/**
- * GET /api/alerts
- * Returns the list of persisted alerts
- */
-app.get("/api/alerts", (req, res) => {
-  res.json(persistedAlerts);
+// Return the list of persisted alerts
+app.get("/api/alerts", (_req, res) => {
+  // in case anything slipped in at runtime, double‑filter
+  const safeAlerts = persistedAlerts.filter(
+    (a) => isValidAlert(a) && marketExists(a.marketId)
+  );
+  res.json(safeAlerts);
 });
 
-/**
- * Helper: fetch latest price for a single outcome
- */
-async function fetchPrice(marketId, outcomeIndex) {
-  const resp = await fetch(`${GAMMA_API}/markets/${marketId}`);
-  if (!resp.ok) {
-    throw new Error(`Gamma /markets/${marketId} → ${resp.status}`);
-  }
-  const m = await resp.json();
-  let prices = m.outcomePrices;
-  if (typeof prices === "string") prices = JSON.parse(prices);
-  return parseFloat(prices[outcomeIndex]);
-}
-
-/**
- * Socket.io: register alerts and assign socketId to persisted ones
- */
+// ── Socket.io for live notifications ────────────────────────────────────────
 io.on("connection", (socket) => {
   console.log("Client connected:", socket.id);
 
-  // Re-bind persisted alerts to this socket for notifications
+  // rebind runtime alerts for this socket
   alertsInMemory = persistedAlerts.map((a) => ({
     ...a,
     socketId: socket.id,
@@ -172,8 +215,24 @@ io.on("connection", (socket) => {
 
   socket.on(
     "createAlert",
-    ({ marketId, outcomeIndex, threshold, direction }) => {
-      // Duplicate check
+    async ({ marketId, outcomeIndex, threshold, direction }) => {
+      // server‑side sanity check
+      const probe = {
+        id: "probe",
+        marketId,
+        outcomeIndex,
+        threshold,
+        direction,
+      };
+      if (!isValidAlert(probe) || !marketExists(marketId)) {
+        return socket.emit("alertError", {
+          message: !isValidAlert(probe)
+            ? "Invalid alert payload."
+            : `Market ${marketId} not found.`,
+        });
+      }
+
+      // duplicate check
       const exists = persistedAlerts.some(
         (a) =>
           a.marketId === marketId &&
@@ -187,11 +246,18 @@ io.on("connection", (socket) => {
         });
       }
 
-      // Persist new alert
+      // create new alert
       const id = Date.now().toString();
       const newAlert = { id, marketId, outcomeIndex, threshold, direction };
-      persistedAlerts.push(newAlert);
-      fs.writeFileSync(alertsFile, JSON.stringify(persistedAlerts, null, 2));
+
+      // persist in Cosmos
+      try {
+        await upsertAlertInCosmos(newAlert);
+        persistedAlerts.push(newAlert);
+      } catch (err) {
+        console.error("Error persisting alert:", err.message);
+        return socket.emit("alertError", { message: "Failed to save alert." });
+      }
 
       // Register in memory
       alertsInMemory.push({
@@ -209,10 +275,8 @@ io.on("connection", (socket) => {
   });
 });
 
-/**
- * Cron: every 10 seconds, check non-triggered in-memory alerts
- */
-cron.schedule('*/10 * * * * *', async () => {
+// Poll every 10 seconds to fire alerts
+cron.schedule("*/10 * * * * *", async () => {
   for (const alert of alertsInMemory.filter((a) => !a.triggered)) {
     try {
       const price = await fetchPrice(alert.marketId, alert.outcomeIndex);
@@ -234,6 +298,8 @@ cron.schedule('*/10 * * * * *', async () => {
   }
 });
 
-server.listen(3001, () =>
-  console.log("🚀 Server listening on http://localhost:3001")
+// ── Start server ─────────────────────────────────────────────────────────────
+const PORT = process.env.PORT || 3001;
+server.listen(PORT, () =>
+  console.log(`🚀 Server listening on http://localhost:${PORT}`)
 );
