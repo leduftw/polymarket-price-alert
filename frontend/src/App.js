@@ -13,12 +13,12 @@ function App() {
   const [form, setForm] = useState({
     marketId: "",
     outcomeIndex: 0,
-    threshold: 0.8,
+    thresholdDigits: "80", // represents 0.80
     direction: "below",
   });
   const [status, setStatus] = useState("");
 
-  // ─── helper: drop any alert missing its required fields ─────────────────────
+  // ─── helper: drop any alert missing its required fields ────────────────────
   const isValidAlert = (a) => {
     const ok =
       typeof a.id === "string" &&
@@ -29,7 +29,7 @@ function App() {
     if (!ok) console.warn("⚠️ Skipping invalid alert:", a);
     return ok;
   };
-  // ────────────────────────────────────────────────────────────────────────────
+  // ───────────────────────────────────────────────────────────────────────────
 
   // 1) Load persisted alerts & enrich with question+label
   useEffect(() => {
@@ -41,9 +41,12 @@ function App() {
           raw.map(async (a) => {
             const resp = await fetch(`/api/markets/${a.marketId}`);
             const det = await resp.json();
-            const question = det.question;
-            const label = det.outcomes[a.outcomeIndex]?.label || "";
-            return { ...a, question, label, triggered: false };
+            return {
+              ...a,
+              question: det.question,
+              label: det.outcomes[a.outcomeIndex]?.label || "",
+              triggered: false,
+            };
           })
         );
         setAlertsList(enriched.filter(isValidAlert));
@@ -63,7 +66,7 @@ function App() {
       .catch((err) => console.error("Fetch markets error", err));
   }, [query]);
 
-  // 3) Fetch market details (outcomes + prices) when marketId changes
+  // 3) Fetch market details when marketId changes
   useEffect(() => {
     if (!form.marketId) {
       setDetail(null);
@@ -93,7 +96,6 @@ function App() {
   useEffect(() => {
     socket.on("alertCreated", async () => {
       setStatus("Alert created! 🎉");
-      // reload and enrich alerts
       try {
         const raw = await (await fetch("/api/alerts")).json();
         const enriched = await Promise.all(
@@ -101,9 +103,12 @@ function App() {
             const det = await (
               await fetch(`/api/markets/${a.marketId}`)
             ).json();
-            const q = det.question;
-            const lbl = det.outcomes[a.outcomeIndex]?.label || "";
-            return { ...a, question: q, label: lbl, triggered: false };
+            return {
+              ...a,
+              question: det.question,
+              label: det.outcomes[a.outcomeIndex]?.label || "",
+              triggered: false,
+            };
           })
         );
         setAlertsList(enriched.filter(isValidAlert));
@@ -143,16 +148,43 @@ function App() {
     };
   }, [socket, alertsList]);
 
+  // ─── threshold: derive numeric value & validate ────────────────────────────
+  const threshold = parseFloat(`0.${form.thresholdDigits}`);
+  const currentPrice = detail?.outcomes[form.outcomeIndex]?.price ?? 0;
+  // round to two decimals to match the UI
+  const displayedPrice = parseFloat(currentPrice.toFixed(2));
+
+  let thresholdError = "";
+  if (detail) {
+    if (form.direction === "above") {
+      // strictly greater than the displayed price, and ≤ 0.99
+      if (threshold <= displayedPrice || threshold > 0.99) {
+        thresholdError = `For “Above”, must be > ${displayedPrice.toFixed(
+          2
+        )} and ≤ 0.99.`;
+      }
+    } else {
+      // strictly less than the displayed price, and ≥ 0.01
+      if (threshold < 0.01 || threshold >= displayedPrice) {
+        thresholdError = `For “Below”, must be ≥ 0.01 and < ${displayedPrice.toFixed(
+          2
+        )}.`;
+      }
+    }
+  }
+
+  const isSubmitDisabled = Boolean(thresholdError);
+  // ───────────────────────────────────────────────────────────────────────────
+
   // 6) Form submission: create alert
   const handleSubmit = (e) => {
     e.preventDefault();
-    // client‑side duplicate check
     if (
       alertsList.some(
         (a) =>
           a.marketId === form.marketId &&
           a.outcomeIndex === form.outcomeIndex &&
-          a.threshold === form.threshold &&
+          a.threshold === threshold &&
           a.direction === form.direction
       )
     ) {
@@ -160,7 +192,12 @@ function App() {
       setTimeout(() => setStatus(""), 3000);
       return;
     }
-    socket.emit("createAlert", form);
+    socket.emit("createAlert", {
+      marketId: form.marketId,
+      outcomeIndex: form.outcomeIndex,
+      threshold,
+      direction: form.direction,
+    });
   };
 
   return (
@@ -216,10 +253,7 @@ function App() {
               <select
                 value={form.outcomeIndex}
                 onChange={(e) =>
-                  setForm((f) => ({
-                    ...f,
-                    outcomeIndex: +e.target.value,
-                  }))
+                  setForm((f) => ({ ...f, outcomeIndex: +e.target.value }))
                 }
                 style={{ width: "100%" }}
               >
@@ -242,10 +276,7 @@ function App() {
               <select
                 value={form.direction}
                 onChange={(e) =>
-                  setForm((f) => ({
-                    ...f,
-                    direction: e.target.value,
-                  }))
+                  setForm((f) => ({ ...f, direction: e.target.value }))
                 }
                 style={{ width: "100%" }}
               >
@@ -261,23 +292,57 @@ function App() {
           <label>
             Threshold
             <br />
-            <input
-              type="number"
-              step="0.01"
-              value={form.threshold}
-              onChange={(e) =>
-                setForm((f) => ({
-                  ...f,
-                  threshold: +e.target.value,
-                }))
-              }
-              required
-              style={{ width: "100%" }}
-            />
+            <div style={{ display: "flex", width: "100%" }}>
+              <span
+                style={{
+                  padding: "0.5rem",
+                  background: "#f0f0f0",
+                  border: "1px solid #ccc",
+                  borderRight: "none",
+                  borderRadius: "4px 0 0 4px",
+                }}
+              >
+                0.
+              </span>
+              <input
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                maxLength={2}
+                value={form.thresholdDigits}
+                onChange={(e) => {
+                  const digits = e.target.value
+                    .replace(/[^0-9]/g, "")
+                    .slice(0, 2);
+                  setForm((f) => ({ ...f, thresholdDigits: digits }));
+                }}
+                required
+                style={{
+                  flex: "1",
+                  border: "1px solid #ccc",
+                  borderLeft: "none",
+                  borderRadius: "0 4px 4px 0",
+                  padding: "0.5rem",
+                }}
+              />
+            </div>
+            {thresholdError && (
+              <p
+                style={{
+                  color: "red",
+                  fontSize: "0.875rem",
+                  margin: "0.25rem 0 0",
+                }}
+              >
+                {thresholdError}
+              </p>
+            )}
           </label>
         </div>
 
-        <button type="submit">Set Browser Alert</button>
+        <button type="submit" disabled={isSubmitDisabled}>
+          Set Browser Alert
+        </button>
       </form>
 
       {status && <p style={{ marginTop: "1rem" }}>{status}</p>}
