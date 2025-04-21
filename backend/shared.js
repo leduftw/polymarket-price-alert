@@ -3,36 +3,35 @@
 const fetch = require("node-fetch");
 const { CosmosClient } = require("@azure/cosmos");
 
-// Polymarket API configuration
+// ── Polymarket API config ─────────────────────────────────────────────────────
 const GAMMA = {
   API: "https://gamma-api.polymarket.com",
   PAGE: 500,
   MAXPG: 10,
 };
 
-// Cosmos DB client setup
+// ── Cosmos DB client setup ─────────────────────────────────────────────────────
 const cosmos = new CosmosClient({
   endpoint: process.env.COSMOS_ENDPOINT,
   key: process.env.COSMOS_KEY,
 });
 let container;
-
 (async () => {
-  // Ensure the database and container exist
   const { database } = await cosmos.databases.createIfNotExists({
     id: "AlertsDB",
   });
-  const result = await database.containers.createIfNotExists({
+  const { container: cont } = await database.containers.createIfNotExists({
     id: "Alerts",
     partitionKey: { kind: "Hash", paths: ["/marketId"] },
   });
-  container = result.container;
+  container = cont;
   console.log("Cosmos DB database and container are ready");
 })();
 
-/**
- * Fetch a single page of active markets
- */
+// ── Market cache ───────────────────────────────────────────────────────────────
+let marketCache = [];
+
+/** Fetch one page of active markets */
 async function fetchMarketsPage(limit = GAMMA.PAGE, offset = 0) {
   const url = new URL(`${GAMMA.API}/markets`);
   url.searchParams.set("active", "true");
@@ -46,41 +45,49 @@ async function fetchMarketsPage(limit = GAMMA.PAGE, offset = 0) {
   return res.json();
 }
 
-/**
- * Fetch all active markets (paginated) and return only id+question
- */
-async function getAllActiveMarkets() {
-  let all = [],
-    batch;
-  for (let i = 0; i < GAMMA.MAXPG; i++) {
-    batch = await fetchMarketsPage(GAMMA.PAGE, i * GAMMA.PAGE);
-    if (!batch.length) break;
-    all.push(...batch);
-    if (batch.length < GAMMA.PAGE) break;
+/** Fetch & populate the in‑memory marketCache */
+async function refreshMarketCache() {
+  try {
+    let all = [],
+      batch;
+    for (let i = 0; i < GAMMA.MAXPG; i++) {
+      batch = await fetchMarketsPage(GAMMA.PAGE, i * GAMMA.PAGE);
+      if (!batch.length) break;
+      all.push(...batch);
+      if (batch.length < GAMMA.PAGE) break;
+    }
+    marketCache = all.map((m) => ({ id: m.id, question: m.question }));
+    console.log(`Refreshed market cache (${marketCache.length} items)`);
+  } catch (err) {
+    console.error("Failed to refresh market cache:", err.message);
   }
-  return all.map((m) => ({ id: m.id, question: m.question }));
+}
+// initial load + every 1 minute
+refreshMarketCache();
+setInterval(refreshMarketCache, 5 * 60 * 1000);
+
+/** Return the cached list (for your HTTP getMarkets) */
+function getCachedMarkets() {
+  return marketCache;
 }
 
-/**
- * List all persisted alerts from Cosmos DB
- */
+/** Cheap exists check against the cache */
+function marketExists(id) {
+  return marketCache.some((m) => m.id === id);
+}
+
+// ── Cosmos helpers ────────────────────────────────────────────────────────────
 async function listAlerts() {
   const { resources } = await container.items
     .query("SELECT * FROM c")
     .fetchAll();
   return resources;
 }
-
-/**
- * Upsert (insert or replace) an alert document in Cosmos DB
- */
 async function upsertAlert(a) {
   await container.items.upsert(a);
 }
 
-/**
- * Fetch the current price for one market outcome
- */
+// ── Price helper ──────────────────────────────────────────────────────────────
 async function fetchPrice(marketId, outcomeIndex) {
   const res = await fetch(`${GAMMA.API}/markets/${marketId}`);
   if (!res.ok) throw new Error(`Gamma /markets/${marketId} → ${resp.status}`);
@@ -100,7 +107,8 @@ function isValidAlert(a) {
     Number.isInteger(a.outcomeIndex) &&
     ["above", "below"].includes(a.direction) &&
     typeof a.threshold === "number" &&
-    (a.threshold > 0 && a.threshold < 1);
+    a.threshold > 0 &&
+    a.threshold < 1;
   return ok;
 }
 
@@ -108,16 +116,22 @@ function isValidAlert(a) {
  * Check that a given marketId is in the current active markets.
  */
 async function marketExists(marketId) {
-  const markets = await getAllActiveMarkets();
-  return markets.some((m) => m.id === marketId);
+  return marketCache.some((m) => m.id === marketId);
 }
 
+// ── Exports ───────────────────────────────────────────────────────────────────
 module.exports = {
-  fetchMarketsPage,
-  getAllActiveMarkets,
+  // market cache
+  getCachedMarkets,
+
+  // alerts store
   listAlerts,
   upsertAlert,
-  fetchPrice,
+
+  // validation
   isValidAlert,
   marketExists,
+
+  // price check
+  fetchPrice,
 };

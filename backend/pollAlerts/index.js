@@ -1,24 +1,25 @@
 // pollAlerts/index.js
 const {
   listAlerts,
-  fetchPrice,
   isValidAlert,
   marketExists,
+  fetchPrice,
 } = require("../shared");
 const ioClients = {}; // you’ll need a SignalR or other push mechanism
 
 module.exports = async function (context, myTimer) {
   const allAlerts = await listAlerts();
+  console.log(`Alerts count: ${allAlerts.length}`);
 
   // 1) schema + existence validation
   for (const a of allAlerts) {
     if (!isValidAlert(a)) {
-      context.log.warn(`Skipping invalid alert ${a.id}`);
+      context.log.warn(`Skipping invalid alert (id: ${a.id})`);
       continue;
     }
-    if (!(await marketExists(a.marketId))) {
+    if (!marketExists(a.marketId)) {
       context.log.warn(
-        `Skipping alert ${a.id} for unknown market ${a.marketId}`
+        `Skipping alert (id: ${a.id}) for unknown market (id: ${a.marketId})`
       );
       continue;
     }
@@ -28,10 +29,10 @@ module.exports = async function (context, myTimer) {
         a.direction === "below" ? price <= a.threshold : price >= a.threshold;
       if (hit) {
         // TODO: wire up your real push mechanism (SignalR, etc.)
-        context.log(`Alert ${a.id} triggered at price ${price}`);
+        context.log(`Alert (id: ${a.id}) triggered at price ${price}`);
       }
     } catch (err) {
-      context.log.error(`Error checking alert ${a.id}:`, err);
+      context.log.error(`Error checking alert (id: ${a.id}):`, err);
     }
   }
 };
