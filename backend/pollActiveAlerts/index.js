@@ -1,5 +1,7 @@
 // pollAlerts/index.js
 
+const fetch = require("node-fetch");
+
 const {
   listActiveAlerts,
   isValidAlert,
@@ -8,6 +10,27 @@ const {
   upsertCompletedAlert,
   deleteActiveAlert,
 } = require("../shared");
+
+const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
+
+const sendTelegramAlert = async (message) => {
+  const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
+  const body = {
+    chat_id: TELEGRAM_CHAT_ID,
+    text: message,
+  };
+
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+
+  if (!res.ok) {
+    console.error("Telegram send failed", await res.text());
+  }
+};
 
 module.exports = async function (context, myTimer) {
   const allActiveAlerts = await listActiveAlerts();
@@ -31,6 +54,11 @@ module.exports = async function (context, myTimer) {
         a.direction === "below" ? price <= a.threshold : price >= a.threshold;
 
       if (hit) {
+        // Notify the user on Telegram
+        await sendTelegramAlert(
+          `Alert triggered for market ${marketId} at price ${currentPrice}`
+        );
+
         // Move to CompletedAlerts
         await upsertCompletedAlert({
           ...a,
