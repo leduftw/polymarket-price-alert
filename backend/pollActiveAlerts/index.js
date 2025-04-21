@@ -56,7 +56,7 @@ module.exports = async function (context, myTimer) {
       if (hit) {
         // Notify the user on Telegram
         await sendTelegramAlert(
-          `Alert triggered for market ${marketId} at price ${currentPrice}`
+          `Alert triggered for market ${a.marketId} at price ${price}`
         );
 
         // Move to CompletedAlerts
