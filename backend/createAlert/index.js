@@ -2,8 +2,8 @@
 const {
   isValidAlert,
   marketExists,
-  listAlerts,
-  upsertAlert,
+  listActiveAlerts,
+  upsertActiveAlert,
 } = require("../shared");
 
 module.exports = async function (context, req) {
@@ -28,7 +28,7 @@ module.exports = async function (context, req) {
   }
 
   // duplicate check
-  const existing = (await listAlerts()).some(
+  const existing = (await listActiveAlerts()).some(
     (a) =>
       a.marketId === marketId &&
       a.outcomeIndex === outcomeIndex &&
@@ -42,7 +42,7 @@ module.exports = async function (context, req) {
 
   const id = Date.now().toString();
   const alert = { id, marketId, outcomeIndex, threshold, direction };
-  await upsertAlert(alert);
+  await upsertActiveAlert(alert);
 
   context.res = { status: 201, body: alert };
 };

@@ -1,18 +1,19 @@
 // pollAlerts/index.js
+
 const {
-  listAlerts,
+  listActiveAlerts,
   isValidAlert,
   marketExists,
   fetchPrice,
+  upsertCompletedAlert,
+  deleteActiveAlert,
 } = require("../shared");
-const ioClients = {}; // you’ll need a SignalR or other push mechanism
 
 module.exports = async function (context, myTimer) {
-  const allAlerts = await listAlerts();
-  console.log(`Alerts count: ${allAlerts.length}`);
+  const allActiveAlerts = await listActiveAlerts();
+  context.log(`Active alerts count: ${allActiveAlerts.length}`);
 
-  // 1) schema + existence validation
-  for (const a of allAlerts) {
+  for (const a of allActiveAlerts) {
     if (!isValidAlert(a)) {
       context.log.warn(`Skipping invalid alert (id: ${a.id})`);
       continue;
@@ -23,13 +24,25 @@ module.exports = async function (context, myTimer) {
       );
       continue;
     }
+
     try {
       const price = await fetchPrice(a.marketId, a.outcomeIndex);
       const hit =
         a.direction === "below" ? price <= a.threshold : price >= a.threshold;
+
       if (hit) {
-        // TODO: wire up your real push mechanism (SignalR, etc.)
-        context.log(`Alert (id: ${a.id}) triggered at price ${price}`);
+        // Move to CompletedAlerts
+        await upsertCompletedAlert({
+          ...a,
+          completedAt: new Date().toISOString(),
+          completedPrice: price,
+        });
+        // Remove from ActiveAlerts
+        await deleteActiveAlert(a.id, a.marketId);
+
+        context.log(
+          `Alert (id: ${a.id}) completed at ${price}, moved to CompletedAlerts`
+        );
       }
     } catch (err) {
       context.log.error(`Error checking alert (id: ${a.id}):`, err);

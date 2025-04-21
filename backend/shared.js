@@ -15,23 +15,32 @@ const cosmos = new CosmosClient({
   endpoint: process.env.COSMOS_ENDPOINT,
   key: process.env.COSMOS_KEY,
 });
-let container;
+let activeContainer, completedContainer;
 (async () => {
   const { database } = await cosmos.databases.createIfNotExists({
     id: "AlertsDB",
   });
-  const { container: cont } = await database.containers.createIfNotExists({
-    id: "Alerts",
+
+  // Active alerts container
+  const { container: aCont } = await database.containers.createIfNotExists({
+    id: "ActiveAlerts",
     partitionKey: { kind: "Hash", paths: ["/marketId"] },
   });
-  container = cont;
-  console.log("Cosmos DB database and container are ready");
+
+  // Completed alerts container
+  const { container: cCont } = await database.containers.createIfNotExists({
+    id: "CompletedAlerts",
+    partitionKey: { kind: "Hash", paths: ["/marketId"] },
+  });
+
+  activeContainer = aCont;
+  completedContainer = cCont;
+  console.log("Cosmos DB containers are ready: ActiveAlerts, CompletedAlerts");
 })();
 
 // ── Market cache ───────────────────────────────────────────────────────────────
 let marketCache = [];
 
-/** Fetch one page of active markets */
 async function fetchMarketsPage(limit = GAMMA.PAGE, offset = 0) {
   const url = new URL(`${GAMMA.API}/markets`);
   url.searchParams.set("active", "true");
@@ -39,13 +48,11 @@ async function fetchMarketsPage(limit = GAMMA.PAGE, offset = 0) {
   url.searchParams.set("archived", "false");
   url.searchParams.set("limit", limit);
   url.searchParams.set("offset", offset);
-
   const res = await fetch(url);
   if (!res.ok) throw new Error(`Gamma → ${res.status}`);
   return res.json();
 }
 
-/** Fetch & populate the in‑memory marketCache */
 async function refreshMarketCache() {
   try {
     let all = [],
@@ -62,29 +69,35 @@ async function refreshMarketCache() {
     console.error("Failed to refresh market cache:", err.message);
   }
 }
-// initial load + every 1 minute
 refreshMarketCache();
 setInterval(refreshMarketCache, 5 * 60 * 1000);
 
-/** Return the cached list (for your HTTP getMarkets) */
 function getCachedMarkets() {
   return marketCache;
 }
 
-/** Cheap exists check against the cache */
 function marketExists(id) {
   return marketCache.some((m) => m.id === id);
 }
 
 // ── Cosmos helpers ────────────────────────────────────────────────────────────
-async function listAlerts() {
-  const { resources } = await container.items
+async function listActiveAlerts() {
+  const { resources } = await activeContainer.items
     .query("SELECT * FROM c")
     .fetchAll();
   return resources;
 }
-async function upsertAlert(a) {
-  await container.items.upsert(a);
+
+async function upsertActiveAlert(alert) {
+  await activeContainer.items.upsert(alert);
+}
+
+async function deleteActiveAlert(id, marketId) {
+  await activeContainer.item(id, marketId).delete();
+}
+
+async function upsertCompletedAlert(completed) {
+  await completedContainer.items.upsert(completed);
 }
 
 // ── Price helper ──────────────────────────────────────────────────────────────
@@ -97,9 +110,7 @@ async function fetchPrice(marketId, outcomeIndex) {
   return parseFloat(prices[outcomeIndex]);
 }
 
-/**
- * Validate the shape of an alert object.
- */
+// ── Validation ────────────────────────────────────────────────────────────────
 function isValidAlert(a) {
   const ok =
     typeof a.id === "string" &&
@@ -112,9 +123,6 @@ function isValidAlert(a) {
   return ok;
 }
 
-/**
- * Check that a given marketId is in the current active markets.
- */
 async function marketExists(marketId) {
   return marketCache.some((m) => m.id === marketId);
 }
@@ -124,14 +132,14 @@ module.exports = {
   // market cache
   getCachedMarkets,
 
-  // alerts store
-  listAlerts,
-  upsertAlert,
+  // alerts
+  listActiveAlerts,
+  upsertActiveAlert,
+  deleteActiveAlert,
+  upsertCompletedAlert,
 
-  // validation
+  // helper
+  fetchPrice,
   isValidAlert,
   marketExists,
-
-  // price check
-  fetchPrice,
 };
