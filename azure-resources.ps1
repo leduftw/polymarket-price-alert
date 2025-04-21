@@ -22,7 +22,7 @@ az provider register --namespace Microsoft.Web
 # Once it's "Registered" you can create web app
 az staticwebapp create --name pmalerts-ui --resource-group pmalerts-rg --source https://github.com/leduftw/polymarket-price-alert --branch main --app-location "frontend" --output-location "frontend/build" --login-with-github
 
-# Deploy the backend as Azure Functions (Consumption plan)
+# 4) Deploy the backend as Azure Functions (Consumption plan)
 
 # 4.1) Create a storage account (required by Functions)
 az storage account create --name pmalertsfuncsa --resource-group pmalerts-rg --sku Standard_LRS --location eastus
@@ -35,4 +35,5 @@ az provider register --namespace Microsoft.OperationalInsights
 # 4.2) Once "Registered", create the Function App (automatically creates plan and function insights)
 az functionapp create --name pmalerts-func --resource-group pmalerts-rg --storage-account pmalertsfuncsa --consumption-plan-location eastus --runtime node --runtime-version 22 --os-type Windows --functions-version 4
 
+# 4.3) Configure environment variables
 az functionapp config appsettings set --name pmalerts-func --resource-group pmalerts-rg --settings COSMOS_ENDPOINT="https://pmalerts-cdb.documents.azure.com:443/" COSMOS_KEY="<primary-key>"
