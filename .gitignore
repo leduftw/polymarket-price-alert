@@ -9,7 +9,7 @@ frontend/node_modules/
 **/.env.test.local
 **/.env.production.local
 
-**/local.settings.json
+**/local.settings.*
 
 # logs
 npm-debug.log*
