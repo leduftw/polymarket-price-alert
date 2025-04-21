@@ -35,6 +35,8 @@ function App() {
   // 1) load persisted alerts on mount
   useEffect(() => {
     (async () => {
+      console.log("API base URL is:", process.env.REACT_APP_API_BASE_URL);
+
       try {
         const raw = await fetch(`${process.env.REACT_APP_API_BASE_URL}/active-alerts`).then((r) => r.json());
         const enriched = await Promise.all(
