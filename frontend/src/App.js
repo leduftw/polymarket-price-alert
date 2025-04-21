@@ -36,10 +36,10 @@ function App() {
   useEffect(() => {
     (async () => {
       try {
-        const raw = await fetch("/api/active-alerts").then((r) => r.json());
+        const raw = await fetch(`${process.env.REACT_APP_API_BASE_URL}/active-alerts`).then((r) => r.json());
         const enriched = await Promise.all(
           raw.map(async (a) => {
-            const det = await fetch(`/api/markets/${a.marketId}`).then((r) =>
+            const det = await fetch(`${process.env.REACT_APP_API_BASE_URL}/markets/${a.marketId}`).then((r) =>
               r.json()
             );
             return {
@@ -60,7 +60,7 @@ function App() {
   // 2) fetch market summaries when `query` changes
   useEffect(() => {
     const url =
-      "/api/markets" + (query ? `?q=${encodeURIComponent(query)}` : "");
+      `${process.env.REACT_APP_API_BASE_URL}/markets` + (query ? `?q=${encodeURIComponent(query)}` : "");
     fetch(url)
       .then((r) => r.json())
       .then(setMarkets)
@@ -70,7 +70,7 @@ function App() {
   // 3) fetch details for selected market
   useEffect(() => {
     if (!form.marketId) return setDetail(null);
-    fetch(`/api/markets/${form.marketId}`)
+    fetch(`${process.env.REACT_APP_API_BASE_URL}/markets/${form.marketId}`)
       .then((r) => r.json())
       .then((data) => {
         data.outcomes = data.outcomes.map((o) => ({
@@ -137,7 +137,7 @@ function App() {
         threshold: threshold,
         direction: form.direction,
       };
-      const res = await fetch("/api/active-alerts", {
+      const res = await fetch(`${process.env.REACT_APP_API_BASE_URL}/active-alerts`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -150,7 +150,7 @@ function App() {
 
       const newAlert = await res.json();
       // fetch question+label for display
-      const det = await fetch(`/api/markets/${newAlert.marketId}`).then((r) =>
+      const det = await fetch(`${process.env.REACT_APP_API_BASE_URL}/markets/${newAlert.marketId}`).then((r) =>
         r.json()
       );
       const enriched = {
