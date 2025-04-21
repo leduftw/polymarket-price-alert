@@ -100,7 +100,15 @@ async function upsertActiveAlert(alert) {
 }
 
 async function deleteActiveAlert(id, marketId) {
-  await activeContainer.item(id, marketId).delete();
+  try {
+    await activeContainer.item(id, marketId).delete();
+  } catch (err) {
+    if (err.code === 404) {
+      console.warn(`Alert (id: ${id}) already deleted.`);
+      return;
+    }
+    throw err;
+  }
 }
 
 async function upsertCompletedAlert(completed) {
