@@ -277,6 +277,7 @@ io.on("connection", (socket) => {
 
 // Poll every 10 seconds to fire alerts
 cron.schedule("*/10 * * * * *", async () => {
+  alertsInMemory = alertsInMemory.filter(a => isValidAlert(a) && marketExists(a.marketId));
   for (const alert of alertsInMemory.filter((a) => !a.triggered)) {
     try {
       const price = await fetchPrice(alert.marketId, alert.outcomeIndex);
