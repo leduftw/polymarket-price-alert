@@ -16,8 +16,11 @@ az cosmosdb keys list --type keys --name pmalerts-cdb --resource-group pmalerts-
 # 3) Deploy the frontend with Static Web Apps (Free)
 az provider show --namespace Microsoft.Web --query "registrationState"
 
+az provider show --namespace Microsoft.DomainRegistration --query "registrationState"
+
 # If not "Registered", run this:
 az provider register --namespace Microsoft.Web
+az provider register --namespace Microsoft.DomainRegistration
 
 # Once it's "Registered" you can create web app
 az staticwebapp create --name pmalerts-ui --resource-group pmalerts-rg --source https://github.com/leduftw/polymarket-price-alert --branch main --app-location "frontend" --output-location "frontend/build" --login-with-github
