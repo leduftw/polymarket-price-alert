@@ -54,3 +54,24 @@ __azurite_db*__.json
 !.vscode/extensions.json
 !.vscode/launch.json
 !.vscode/tasks.json
+
+# Azurite official .gitignore
+node_modules
+coverage
+azurite-testdrive
+.nyc_output
+dist
+typings
+debug.log
+*.vsix
+*.tgz
+__*
+*.env
+temp
+**/.DS_Store.DS_Store
+*.pem
+azurite.exe
+.pkg-cache
+release
+querydb*.json
+AzuriteConfig
