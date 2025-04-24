@@ -3,12 +3,8 @@ az login --use-device-code
 # 1) Create a resource group
 az group create --name pmalerts-rg --location eastus
 
-# 2) Cosmos DB (SQL API) — Serverless + Free Tier
+# 2) Create Cosmos DB account (SQL API) — Serverless + Free Tier
 az cosmosdb create --name pmalerts-cdb --resource-group pmalerts-rg --kind GlobalDocumentDB --capabilities EnableServerless --default-consistency-level Session --locations regionName=eastus isZoneRedundant=False
-
-# Create database + container
-az cosmosdb sql database create --account-name pmalerts-cdb --name AlertsDB --resource-group pmalerts-rg
-az cosmosdb sql container create --account-name pmalerts-cdb --database-name AlertsDB --name Alerts --partition-key-path "/marketId" --resource-group pmalerts-rg
 
 # Grab the connection info (endpoint & key used in Function App settings below)
 az cosmosdb keys list --type keys --name pmalerts-cdb --resource-group pmalerts-rg --query "{endpoint:primaryMastersMasterKeyList[0].value, key:primaryMasterKey}" --output yaml
@@ -39,4 +35,4 @@ az provider register --namespace Microsoft.OperationalInsights
 az functionapp create --name pmalerts-func --resource-group pmalerts-rg --storage-account pmalertsfuncsa --consumption-plan-location eastus --runtime node --runtime-version 22 --os-type Windows --functions-version 4
 
 # 4.3) Configure environment variables
-az functionapp config appsettings set --name pmalerts-func --resource-group pmalerts-rg --settings COSMOS_ENDPOINT="https://pmalerts-cdb.documents.azure.com:443/" COSMOS_KEY="<primary-key>"
+az functionapp config appsettings set --name pmalerts-func --resource-group pmalerts-rg --settings COSMOS_ENDPOINT="<account-endpoint>" COSMOS_KEY="<primary-key>" TELEGRAM_BOT_TOKEN="<token>" TELEGRAM_CHAT_ID="<chat-id>"
