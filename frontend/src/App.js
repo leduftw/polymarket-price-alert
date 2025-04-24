@@ -312,7 +312,7 @@ function App() {
         </div>
 
         <button type="submit" disabled={isSubmitDisabled}>
-          Set Browser Alert
+          Create Alert
         </button>
       </form>
 
