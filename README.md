@@ -4,7 +4,7 @@ A full-stack web application that allows users to create and manage price alerts
 
 ## 💡 Why I Built This
 
-While investigating and playing with Polymarket, I discovered that polyalerthub.com charges $9.99 for a Premium subscription just to have unlimited price alerts. I couldn't believe such a simple feature required a monthly subscription, so I decided to build my own price alert mechanism in just 1 day using Azure infrastructure that costs less than $1 per month.
+While investigating and playing with Polymarket, I discovered that polyalerthub.com charges $9.99 for a Premium subscription just to have unlimited price alerts. I couldn't believe such a simple feature required a monthly subscription, so I decided to build my own price alert mechanism over the weekend using Azure infrastructure that costs less than $1 per month.
 
 ## 🎯 Purpose
 
