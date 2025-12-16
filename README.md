@@ -1,10 +1,8 @@
 # Polymarket Price Alert System
 
-A full-stack web application that allows users to create and manage price alerts for Polymarket prediction markets. Get notified via Telegram when market prices reach your specified thresholds.
-
-## 💡 Why I Built This
-
-While investigating and playing with Polymarket, I discovered that polyalerthub.com charges $9.99 for a Premium subscription just to have unlimited price alerts. I couldn't believe such a simple feature required a monthly subscription, so I decided to build my own price alert mechanism over the weekend using Azure infrastructure that costs less than $1 per month.
+A full-stack web application that allows users to create and manage price alerts for Polymarket prediction markets.
+Free alternative to expensive Polymarket alert services. Built in 2 days with Azure (<$1/month) vs $9.99/month subscriptions on PolyAlertHub.
+Get notified via Telegram when market prices reach your specified thresholds.
 
 ## 🎯 Purpose
 
