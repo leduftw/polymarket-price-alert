@@ -179,7 +179,6 @@ resource functionApp 'Microsoft.Web/sites@2023-12-01' = {
         { name: 'TELEGRAM_BOT_TOKEN', value: telegramBotToken }
         { name: 'TELEGRAM_CHAT_ID', value: telegramChatId }
       ]
-      netFrameworkVersion: 'v6.0'
     }
     httpsOnly: true
   }
