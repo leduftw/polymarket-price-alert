@@ -88,12 +88,16 @@ func start
 ```
 
 ### Environment Variables
-Create appropriate environment files with:
-- `COSMOS_ENDPOINT`: Azure Cosmos DB endpoint
-- `COSMOS_KEY`: Azure Cosmos DB access key
-- `TELEGRAM_BOT_TOKEN`: Telegram bot token for notifications
-- `TELEGRAM_CHAT_ID`: Target chat ID for alert messages
-- `REACT_APP_API_BASE_URL`: Backend API base URL (used by frontend at build time)
+
+Example config files are provided in the repo — copy them and fill in your values:
+
+```bash
+cp frontend/.env.example frontend/.env
+cp backend/local.settings.example.json backend/local.settings.json
+```
+
+For details on each variable and how to obtain the values, see the
+[Deployment Guide](docs/deployment-guide.md#local-development).
 
 ## 🔧 Technical Stack
 
