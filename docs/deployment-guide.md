@@ -107,9 +107,11 @@ Copy the **entire XML output** and save it as the secret value.
 **What it is:** The base URL of the backend API, injected into the React
 frontend at build time.
 
-**Value:** `https://pmalerts-func.azurewebsites.net`
+**Value:** `https://pmalerts-func.azurewebsites.net/api`
 
-(This is the Function App hostname printed by the deploy script.)
+> **Why `/api`?** Azure Functions uses a default route prefix of `api`. Your
+> function routes (e.g. `markets`, `active-alerts`) are served under `/api/`,
+> so the full URL becomes `https://pmalerts-func.azurewebsites.net/api/markets`.
 
 ---
 
@@ -125,8 +127,8 @@ Once secrets are configured, push to `main` to trigger both workflows:
 You can monitor the runs in your repo's **Actions** tab.
 
 After the workflows complete:
-- **Frontend** is live at `https://<your-swa-hostname>.azurestaticapps.net`
-- **Backend API** is live at `https://pmalerts-func.azurewebsites.net`
+- **Frontend** is live at `https://ashy-sand-0268de503.6.azurestaticapps.net`
+- **Backend API** is live at `https://pmalerts-func.azurewebsites.net/api`
 
 ---
 
@@ -158,7 +160,103 @@ free or pay-per-use with generous free allowances.
 |--------|---------|-------------|
 | `AZURE_STATIC_WEB_APPS_API_TOKEN` | `azure-static-web-apps.yml` | Deployment token for the Static Web App |
 | `AZURE_PUBLISH_PROFILE` | `deploy-azure-function.yml` | Publish profile XML for the Function App |
-| `REACT_APP_API_BASE_URL` | `azure-static-web-apps.yml` | Backend API URL injected into React at build time |
+| `REACT_APP_API_BASE_URL` | `azure-static-web-apps.yml` | Backend API URL injected into React at build time (must include `/api` suffix) |
+
+---
+
+## Local Development
+
+You can run the full stack locally for development and testing. The local config
+files are gitignored — use the `.example` templates to create them.
+
+### Frontend
+
+The React frontend uses environment variables prefixed with `REACT_APP_`.
+
+| File | Purpose | Committed? |
+|------|---------|------------|
+| `frontend/.env` | Local dev settings (points API to `localhost`) | No (gitignored) |
+| `frontend/.env.production` | Production build settings (points API to Azure) | No (gitignored) |
+| `frontend/.env.example` | Template — copy to `.env` and fill in | Yes |
+
+Create your local env file:
+
+```bash
+cd frontend
+cp .env.example .env
+```
+
+The `.env` file sets `REACT_APP_API_BASE_URL` to `http://localhost:7071/api`
+so the frontend talks to a locally running Function App.
+
+For production builds (used by GitHub Actions), the `REACT_APP_API_BASE_URL`
+value is injected from the GitHub secret, not from `.env.production`. You only
+need `.env.production` if you run `npm run build` locally and want it to point
+at your Azure backend.
+
+### Backend
+
+Azure Functions uses `local.settings.json` for local configuration.
+
+| File | Purpose | Committed? |
+|------|---------|------------|
+| `backend/local.settings.json` | Local settings for `func start` | No (gitignored) |
+| `backend/local.settings.example.json` | Template — copy and fill in | Yes |
+
+Create your local settings file:
+
+```bash
+cd backend
+cp local.settings.example.json local.settings.json
+```
+
+Then fill in the real values for `COSMOS_ENDPOINT`, `COSMOS_KEY`,
+`TELEGRAM_BOT_TOKEN`, and `TELEGRAM_CHAT_ID`.
+
+**Using the Cosmos DB emulator locally:**
+
+For fully local development without Azure, you can use the
+[Azure Cosmos DB Emulator](https://learn.microsoft.com/azure/cosmos-db/local-emulator)
+and [Azurite](https://learn.microsoft.com/azure/storage/common/storage-use-azurite)
+for storage:
+
+1. Start the Cosmos DB emulator
+2. Run `azurite` in a terminal
+3. Use the emulator values in `local.settings.json` (see the example file)
+4. Set `NODE_TLS_REJECT_UNAUTHORIZED=0` (the emulator uses a self-signed cert)
+
+**Running locally:**
+
+```bash
+# Terminal 1 — Backend
+cd backend
+npm install
+func start
+
+# Terminal 2 — Frontend
+cd frontend
+npm install
+npm start
+```
+
+The frontend runs on `http://localhost:3000` and the backend on
+`http://localhost:7071`.
+
+---
+
+## End-to-End Checklist
+
+Use this checklist to verify everything is working after a fresh setup:
+
+- [ ] `az login --use-device-code` — logged in to Azure
+- [ ] `.\infra\deploy.ps1 ...` — infrastructure deployed successfully
+- [ ] GitHub secret `AZURE_STATIC_WEB_APPS_API_TOKEN` — set from `az staticwebapp secrets list`
+- [ ] GitHub secret `AZURE_PUBLISH_PROFILE` — set from `az functionapp deployment list-publishing-profiles`
+- [ ] GitHub secret `REACT_APP_API_BASE_URL` — set to `https://pmalerts-func.azurewebsites.net/api`
+- [ ] Push to `main` — both GitHub Actions workflows pass
+- [ ] Frontend loads at `https://ashy-sand-0268de503.6.azurestaticapps.net`
+- [ ] Markets search works (frontend can call the backend API)
+- [ ] Create a test alert and verify Telegram notification arrives
 
 ---
 
