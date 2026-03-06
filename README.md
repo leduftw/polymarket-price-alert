@@ -8,7 +8,7 @@ Get notified via Telegram when market prices reach your specified thresholds.
 
 This application helps traders and analysts monitor Polymarket prediction markets by:
 - Setting custom price alerts for specific market outcomes
-- Receiving real-time notifications when price thresholds are met
+- Receiving Telegram notifications when price thresholds are met
 - Tracking alert history and market performance
 - Providing an intuitive web interface for alert management
 
@@ -18,14 +18,15 @@ The project consists of two main components:
 
 ### Frontend (React)
 - **Technology**: React 19.1.0 with modern hooks
-- **Features**: Real-time market search, alert creation form, active alerts dashboard
-- **Communication**: REST API calls to backend, Socket.io for real-time updates
+- **Features**: Market search, alert creation form, active alerts dashboard
+- **Communication**: REST API calls to backend
 
 ### Backend (Azure Functions)
-- **Technology**: Node.js serverless functions hosted on Azure
+- **Technology**: Node.js 22 serverless functions hosted on Azure
 - **Database**: Azure Cosmos DB for alert storage
 - **External APIs**: Polymarket Gamma API for market data
 - **Notifications**: Telegram Bot API for alert delivery
+- **Scheduling**: Azure Functions timer triggers for polling alerts
 
 ## ✨ Current Functionalities
 
@@ -43,32 +44,31 @@ The project consists of two main components:
 ### Data Persistence
 - **Active Alerts**: Store and manage currently active price alerts
 - **Completed Alerts**: Archive triggered alerts with completion details
-- **Real-time Sync**: Automatic synchronization between frontend and backend
 
 ### Notification System
 - **Telegram Integration**: Send instant notifications via Telegram bot
-- **Alert Polling**: Automated background checking of alert conditions
-- **Price Monitoring**: Continuous monitoring of market prices via scheduled functions
+- **Alert Polling**: Automated background checking of alert conditions (every 30 seconds)
+- **Price Monitoring**: Continuous monitoring of market prices via timer-triggered functions
 
 ### API Endpoints
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
-| `/markets` | GET | Fetch active markets (with optional search query) |
-| `/markets/{id}` | GET | Get detailed market information |
+| `/markets` | GET | Fetch active markets (with optional `?q=` search query) |
+| `/markets/{id}` | GET | Get detailed market information with outcomes and prices |
 | `/active-alerts` | GET | Retrieve all active alerts |
 | `/active-alerts` | POST | Create a new price alert |
 | `/completed-alerts` | GET | Get history of triggered alerts |
 
 ### Background Services
-- **pollActiveAlerts**: Scheduled function that checks alert conditions every few minutes
-- **Market Cache Refresh**: Automatic updates of market data from Polymarket API
+- **pollActiveAlerts**: Timer-triggered function that checks alert conditions every 30 seconds
+- **Market Cache Refresh**: Automatic updates of market data from Polymarket Gamma API every 5 minutes
 - **Alert Processing**: Moves triggered alerts from active to completed status
 
 ## 🚀 Getting Started
 
 ### Prerequisites
-- Node.js (v14 or higher)
+- Node.js (v22 or higher)
 - Azure Functions Core Tools
 - Azure Cosmos DB account
 - Telegram Bot Token (for notifications)
@@ -93,34 +93,26 @@ Create appropriate environment files with:
 - `COSMOS_KEY`: Azure Cosmos DB access key
 - `TELEGRAM_BOT_TOKEN`: Telegram bot token for notifications
 - `TELEGRAM_CHAT_ID`: Target chat ID for alert messages
-- `REACT_APP_API_BASE_URL`: Backend API base URL
-
-## 📊 Key Features
-
-- **Real-time Market Data**: Live integration with Polymarket's Gamma API
-- **Intelligent Caching**: Efficient market data caching to reduce API calls
-- **Robust Validation**: Comprehensive input validation and error handling
-- **Scalable Architecture**: Serverless backend design for automatic scaling
-- **User-friendly Interface**: Clean, responsive React frontend
-- **Reliable Notifications**: Telegram integration for instant alert delivery
-- **Data Persistence**: Secure storage of alerts and user preferences
+- `REACT_APP_API_BASE_URL`: Backend API base URL (used by frontend at build time)
 
 ## 🔧 Technical Stack
 
 **Frontend:**
 - React 19.1.0
-- Socket.io Client
-- Modern CSS with responsive design
+- Modern CSS with inline styles
 
 **Backend:**
-- Azure Functions (Node.js)
+- Azure Functions v4 (Node.js 22)
 - Azure Cosmos DB
-- Node-cron for scheduling
-- Express.js for HTTP handling
+- node-fetch for HTTP requests
 
 **External Services:**
 - Polymarket Gamma API
 - Telegram Bot API
+
+**CI/CD:**
+- GitHub Actions for Azure Static Web Apps deployment (frontend)
+- GitHub Actions for Azure Functions deployment (backend)
 
 ## 📝 License
 

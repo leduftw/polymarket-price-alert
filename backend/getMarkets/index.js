@@ -2,19 +2,19 @@
 const { getCachedMarkets } = require("../shared");
 
 module.exports = async function (context, req) {
-  // 1) grab the `q` query‐string (or default to empty)
-  const q = (req.query.q || "").toLowerCase();
+  try {
+    const q = (req.query.q || "").toLowerCase();
+    let markets = getCachedMarkets();
 
-  // 2) pull the cached list
-  let markets = getCachedMarkets();
+    if (q) {
+      markets = markets.filter((m) => m.question.toLowerCase().includes(q));
+    }
 
-  // 3) if a search term was provided, filter by question
-  if (q) {
-    markets = markets.filter((m) => m.question.toLowerCase().includes(q));
+    context.res = {
+      body: markets.slice(0, 20),
+    };
+  } catch (err) {
+    context.log.error("Error fetching markets:", err);
+    context.res = { status: 500, body: "Failed to fetch markets." };
   }
-
-  // 4) return at most 20 results
-  context.res = {
-    body: markets.slice(0, 20),
-  };
 };

@@ -16,18 +16,18 @@ const cosmos = new CosmosClient({
   key: process.env.COSMOS_KEY,
 });
 let activeContainer, completedContainer;
-(async () => {
+
+// Initialization promise — awaited before any DB access
+const cosmosReady = (async () => {
   const { database } = await cosmos.databases.createIfNotExists({
     id: "AlertsDB",
   });
 
-  // Active alerts container
   const { container: aCont } = await database.containers.createIfNotExists({
     id: "ActiveAlerts",
     partitionKey: { kind: "Hash", paths: ["/marketId"] },
   });
 
-  // Completed alerts container
   const { container: cCont } = await database.containers.createIfNotExists({
     id: "CompletedAlerts",
     partitionKey: { kind: "Hash", paths: ["/marketId"] },
@@ -37,6 +37,10 @@ let activeContainer, completedContainer;
   completedContainer = cCont;
   console.log("Cosmos DB containers are ready: ActiveAlerts, CompletedAlerts");
 })();
+
+async function ensureContainers() {
+  await cosmosReady;
+}
 
 // ── Market cache ───────────────────────────────────────────────────────────────
 let marketCache = [];
@@ -82,6 +86,7 @@ function marketExists(id) {
 
 // ── Cosmos helpers ────────────────────────────────────────────────────────────
 async function listActiveAlerts() {
+  await ensureContainers();
   const { resources } = await activeContainer.items
     .query("SELECT * FROM c")
     .fetchAll();
@@ -89,6 +94,7 @@ async function listActiveAlerts() {
 }
 
 async function listCompletedAlerts() {
+  await ensureContainers();
   const { resources } = await completedContainer.items
     .query("SELECT * FROM c")
     .fetchAll();
@@ -96,10 +102,12 @@ async function listCompletedAlerts() {
 }
 
 async function upsertActiveAlert(alert) {
+  await ensureContainers();
   await activeContainer.items.upsert(alert);
 }
 
 async function deleteActiveAlert(id, marketId) {
+  await ensureContainers();
   try {
     await activeContainer.item(id, marketId).delete();
   } catch (err) {
@@ -112,13 +120,14 @@ async function deleteActiveAlert(id, marketId) {
 }
 
 async function upsertCompletedAlert(completed) {
+  await ensureContainers();
   await completedContainer.items.upsert(completed);
 }
 
 // ── Price helper ──────────────────────────────────────────────────────────────
 async function fetchPrice(marketId, outcomeIndex) {
   const res = await fetch(`${GAMMA.API}/markets/${marketId}`);
-  if (!res.ok) throw new Error(`Gamma /markets/${marketId} → ${resp.status}`);
+  if (!res.ok) throw new Error(`Gamma /markets/${marketId} → ${res.status}`);
   const m = await res.json();
   let prices = m.outcomePrices;
   if (typeof prices === "string") prices = JSON.parse(prices);
@@ -136,10 +145,6 @@ function isValidAlert(a) {
     a.threshold > 0 &&
     a.threshold < 1;
   return ok;
-}
-
-async function marketExists(marketId) {
-  return marketCache.some((m) => m.id === marketId);
 }
 
 // ── Exports ───────────────────────────────────────────────────────────────────
