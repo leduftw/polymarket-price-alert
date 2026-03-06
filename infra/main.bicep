@@ -158,18 +158,18 @@ resource functionApp 'Microsoft.Web/sites@2023-12-01' = {
     serverFarmId: appServicePlan.id
     siteConfig: {
       appSettings: [
-        { name: 'AzureWebJobsStorage'; value: 'DefaultEndpointsProtocol=https;AccountName=${storageAccount.name};EndpointSuffix=${environment().suffixes.storage};AccountKey=${storageAccount.listKeys().keys[0].value}' }
-        { name: 'WEBSITE_CONTENTAZUREFILECONNECTIONSTRING'; value: 'DefaultEndpointsProtocol=https;AccountName=${storageAccount.name};EndpointSuffix=${environment().suffixes.storage};AccountKey=${storageAccount.listKeys().keys[0].value}' }
-        { name: 'WEBSITE_CONTENTSHARE'; value: toLower(functionAppName) }
-        { name: 'FUNCTIONS_EXTENSION_VERSION'; value: '~4' }
-        { name: 'FUNCTIONS_WORKER_RUNTIME'; value: 'node' }
-        { name: 'WEBSITE_NODE_DEFAULT_VERSION'; value: '~22' }
-        { name: 'APPINSIGHTS_INSTRUMENTATIONKEY'; value: appInsights.properties.InstrumentationKey }
-        { name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'; value: appInsights.properties.ConnectionString }
-        { name: 'COSMOS_ENDPOINT'; value: cosmosAccount.properties.documentEndpoint }
-        { name: 'COSMOS_KEY'; value: cosmosAccount.listKeys().primaryMasterKey }
-        { name: 'TELEGRAM_BOT_TOKEN'; value: telegramBotToken }
-        { name: 'TELEGRAM_CHAT_ID'; value: telegramChatId }
+        { name: 'AzureWebJobsStorage', value: 'DefaultEndpointsProtocol=https;AccountName=${storageAccount.name};EndpointSuffix=${environment().suffixes.storage};AccountKey=${storageAccount.listKeys().keys[0].value}' }
+        { name: 'WEBSITE_CONTENTAZUREFILECONNECTIONSTRING', value: 'DefaultEndpointsProtocol=https;AccountName=${storageAccount.name};EndpointSuffix=${environment().suffixes.storage};AccountKey=${storageAccount.listKeys().keys[0].value}' }
+        { name: 'WEBSITE_CONTENTSHARE', value: toLower(functionAppName) }
+        { name: 'FUNCTIONS_EXTENSION_VERSION', value: '~4' }
+        { name: 'FUNCTIONS_WORKER_RUNTIME', value: 'node' }
+        { name: 'WEBSITE_NODE_DEFAULT_VERSION', value: '~22' }
+        { name: 'APPINSIGHTS_INSTRUMENTATIONKEY', value: appInsights.properties.InstrumentationKey }
+        { name: 'APPLICATIONINSIGHTS_CONNECTION_STRING', value: appInsights.properties.ConnectionString }
+        { name: 'COSMOS_ENDPOINT', value: cosmosAccount.properties.documentEndpoint }
+        { name: 'COSMOS_KEY', value: cosmosAccount.listKeys().primaryMasterKey }
+        { name: 'TELEGRAM_BOT_TOKEN', value: telegramBotToken }
+        { name: 'TELEGRAM_CHAT_ID', value: telegramChatId }
       ]
       netFrameworkVersion: 'v6.0'
     }

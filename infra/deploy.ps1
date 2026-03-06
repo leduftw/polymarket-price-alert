@@ -39,6 +39,14 @@ $TemplateFile = Join-Path $PSScriptRoot "main.bicep"
 
 Write-Host "=== Polymarket Price Alert — Azure Deployment ===" -ForegroundColor Cyan
 
+# --- Ensure the user is logged in to Azure ---
+$account = az account show --output json 2>$null | ConvertFrom-Json
+if (-not $account) {
+    Write-Error "Not logged in to Azure. Run 'az login --use-device-code' first, then re-run this script."
+    exit 1
+}
+Write-Host "Logged in as '$($account.user.name)' (subscription: $($account.name))" -ForegroundColor Green
+
 # --- Ensure resource group exists ---
 Write-Host "`nChecking resource group '$ResourceGroup' in '$Location'..."
 $rgExists = az group exists --name $ResourceGroup 2>$null
