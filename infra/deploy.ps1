@@ -12,13 +12,20 @@
     Telegram chat ID where alerts are sent.
 
 .PARAMETER Location
-    Azure region. Defaults to 'eastus'.
+    Azure region. Defaults to 'westeurope'.
 
 .PARAMETER ProjectName
     Project prefix for resource names. Defaults to 'pmalerts'.
 
+.PARAMETER Clean
+    Delete the resource group before deploying, useful when a previous
+    deployment left resources in a failed provisioning state.
+
 .EXAMPLE
     .\infra\deploy.ps1 -TelegramBotToken "<token>" -TelegramChatId "<chat-id>"
+
+.EXAMPLE
+    .\infra\deploy.ps1 -TelegramBotToken "<token>" -TelegramChatId "<chat-id>" -Clean
 #>
 
 param(
@@ -30,7 +37,9 @@ param(
 
     [string]$Location = "westeurope",
 
-    [string]$ProjectName = "pmalerts"
+    [string]$ProjectName = "pmalerts",
+
+    [switch]$Clean
 )
 
 $ErrorActionPreference = "Stop"
@@ -47,15 +56,31 @@ if (-not $account) {
 }
 Write-Host "Logged in as '$($account.user.name)' (subscription: $($account.name))" -ForegroundColor Green
 
+# --- Clean previous deployment if requested ---
+if ($Clean) {
+    $rgExists = az group exists --name $ResourceGroup 2>$null
+    if ($rgExists -eq "true") {
+        Write-Host "`nDeleting resource group '$ResourceGroup' (this may take a few minutes)..." -ForegroundColor Yellow
+        az group delete --name $ResourceGroup --yes --output none
+        Write-Host "Resource group deleted." -ForegroundColor Green
+    }
+}
+
 # --- Ensure resource group exists ---
-Write-Host "`nChecking resource group '$ResourceGroup' in '$Location'..."
-$rgExists = az group exists --name $ResourceGroup 2>$null
-if ($rgExists -ne "true") {
-    Write-Host "Creating resource group '$ResourceGroup'..."
+Write-Host "`nChecking resource group '$ResourceGroup'..."
+$rgJson = az group show --name $ResourceGroup --output json 2>$null
+if ($rgJson) {
+    $rg = $rgJson | ConvertFrom-Json
+    $rgLocation = $rg.location
+    Write-Host "Resource group already exists in '$rgLocation'." -ForegroundColor Yellow
+    if ($rgLocation -ne $Location) {
+        Write-Host "WARNING: Requested location is '$Location' but resource group is in '$rgLocation'. Resources will be deployed to '$rgLocation'." -ForegroundColor Red
+        $Location = $rgLocation
+    }
+} else {
+    Write-Host "Creating resource group '$ResourceGroup' in '$Location'..."
     az group create --name $ResourceGroup --location $Location --output none
     Write-Host "Resource group created." -ForegroundColor Green
-} else {
-    Write-Host "Resource group already exists." -ForegroundColor Yellow
 }
 
 # --- Deploy Bicep template ---
@@ -71,6 +96,9 @@ $deployment = az deployment group create `
     --output json | ConvertFrom-Json
 
 if ($LASTEXITCODE -ne 0) {
+    Write-Host ""
+    Write-Host "TIP: If a resource is stuck in a failed provisioning state, re-run with -Clean to delete the resource group and start fresh:" -ForegroundColor Yellow
+    Write-Host "  .\infra\deploy.ps1 -TelegramBotToken <tok> -TelegramChatId <id> -Clean" -ForegroundColor Yellow
     Write-Error "Deployment failed."
     exit 1
 }
