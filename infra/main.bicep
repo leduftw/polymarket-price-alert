@@ -5,7 +5,7 @@
 // ---------------------------------------------------------------------------
 
 @description('Azure region for all resources.')
-param location string = 'eastus'
+param location string = 'westeurope'
 
 @description('Project name used as a prefix for resource names.')
 param projectName string = 'pmalerts'

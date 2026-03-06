@@ -28,7 +28,7 @@ param(
     [Parameter(Mandatory = $true)]
     [string]$TelegramChatId,
 
-    [string]$Location = "eastus",
+    [string]$Location = "westeurope",
 
     [string]$ProjectName = "pmalerts"
 )
