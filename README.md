@@ -119,14 +119,18 @@ Create appropriate environment files with:
 
 Azure resources are defined as Infrastructure-as-Code using [Bicep](https://learn.microsoft.com/en-us/azure/azure-resource-manager/bicep/overview) templates in the `infra/` directory.
 
-### Deploy infrastructure
+### Quick deploy
+
 ```powershell
+az login --use-device-code
 .\infra\deploy.ps1 -TelegramBotToken "<your-token>" -TelegramChatId "<your-chat-id>"
 ```
 
-This creates: Cosmos DB (serverless), Function App (consumption), Static Web App (free), Storage Account, Application Insights, and Log Analytics.
+This creates: Cosmos DB (serverless, northeurope), Function App (consumption), Static Web App (free), Storage Account, Application Insights, and Log Analytics — all in westeurope (except Cosmos DB).
 
-After deployment, connect the Static Web App to GitHub via the Azure Portal to enable CI/CD.
+After deployment, configure the three required GitHub secrets and push to `main` to deploy your code.
+
+> 📖 **For the full end-to-end setup guide** (secrets, CI/CD, troubleshooting), see **[docs/deployment-guide.md](docs/deployment-guide.md)**.
 
 ## 📝 License
 
