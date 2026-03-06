@@ -17,13 +17,13 @@ This application helps traders and analysts monitor Polymarket prediction market
 The project consists of two main components:
 
 ### Frontend (React)
-- **Technology**: React 19.1.0 with modern hooks
+- **Technology**: React 19.2 with modern hooks
 - **Features**: Market search, alert creation form, active alerts dashboard
 - **Communication**: REST API calls to backend
 
 ### Backend (Azure Functions)
-- **Technology**: Node.js 22 serverless functions hosted on Azure
-- **Database**: Azure Cosmos DB for alert storage
+- **Technology**: Node.js 22 serverless functions hosted on Azure (v4 programming model)
+- **Database**: Azure Cosmos DB (serverless) for alert storage
 - **External APIs**: Polymarket Gamma API for market data
 - **Notifications**: Telegram Bot API for alert delivery
 - **Scheduling**: Azure Functions timer triggers for polling alerts
@@ -98,21 +98,35 @@ Create appropriate environment files with:
 ## 🔧 Technical Stack
 
 **Frontend:**
-- React 19.1.0
+- React 19.2
 - Modern CSS with inline styles
 
 **Backend:**
-- Azure Functions v4 (Node.js 22)
-- Azure Cosmos DB
+- Azure Functions v4 programming model (Node.js 22)
+- Azure Cosmos DB (serverless)
 - node-fetch for HTTP requests
 
 **External Services:**
 - Polymarket Gamma API
 - Telegram Bot API
 
-**CI/CD:**
+**Infrastructure:**
+- Azure Bicep templates (`infra/main.bicep`) for repeatable provisioning
 - GitHub Actions for Azure Static Web Apps deployment (frontend)
 - GitHub Actions for Azure Functions deployment (backend)
+
+## 🏗️ Infrastructure Setup
+
+Azure resources are defined as Infrastructure-as-Code using [Bicep](https://learn.microsoft.com/en-us/azure/azure-resource-manager/bicep/overview) templates in the `infra/` directory.
+
+### Deploy infrastructure
+```powershell
+.\infra\deploy.ps1 -TelegramBotToken "<your-token>" -TelegramChatId "<your-chat-id>"
+```
+
+This creates: Cosmos DB (serverless), Function App (consumption), Static Web App (free), Storage Account, Application Insights, and Log Analytics.
+
+After deployment, connect the Static Web App to GitHub via the Azure Portal to enable CI/CD.
 
 ## 📝 License
 

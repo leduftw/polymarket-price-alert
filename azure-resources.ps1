@@ -1,3 +1,8 @@
+# ==========================================================================
+# DEPRECATED — Prefer the Bicep IaC templates in infra/main.bicep instead.
+#   Deploy with:  .\infra\deploy.ps1 -TelegramBotToken <tok> -TelegramChatId <id>
+# ==========================================================================
+
 az login --use-device-code
 
 # 1) Create a resource group
