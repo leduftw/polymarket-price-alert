@@ -1,6 +1,5 @@
 // ---------------------------------------------------------------------------
 // Polymarket Price Alert — Azure Infrastructure
-// Replaces the ad-hoc az CLI commands in ../azure-resources.ps1
 // Usage:  az deployment group create -g pmalerts-rg -f main.bicep \
 //           -p telegramBotToken=<tok> telegramChatId=<id>
 // ---------------------------------------------------------------------------
