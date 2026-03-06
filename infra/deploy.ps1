@@ -17,6 +17,10 @@
 .PARAMETER ProjectName
     Project prefix for resource names. Defaults to 'pmalerts'.
 
+.PARAMETER CosmosDbLocation
+    Azure region for the Cosmos DB account. Defaults to 'northeurope'
+    to avoid capacity constraints in the main region.
+
 .PARAMETER Clean
     Delete the resource group before deploying, useful when a previous
     deployment left resources in a failed provisioning state.
@@ -38,6 +42,8 @@ param(
     [string]$Location = "westeurope",
 
     [string]$ProjectName = "pmalerts",
+
+    [string]$CosmosDbLocation = "northeurope",
 
     [switch]$Clean
 )
@@ -90,6 +96,7 @@ $deployment = az deployment group create `
     --template-file $TemplateFile `
     --parameters `
         location=$Location `
+        cosmosDbLocation=$CosmosDbLocation `
         projectName=$ProjectName `
         telegramBotToken=$TelegramBotToken `
         telegramChatId=$TelegramChatId `

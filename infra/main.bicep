@@ -7,6 +7,9 @@
 @description('Azure region for all resources.')
 param location string = 'westeurope'
 
+@description('Azure region for the Cosmos DB account. Defaults to northeurope to avoid capacity constraints in westeurope.')
+param cosmosDbLocation string = 'northeurope'
+
 @description('Project name used as a prefix for resource names.')
 param projectName string = 'pmalerts'
 
@@ -37,7 +40,7 @@ var logAnalyticsName = '${projectName}-law'
 // ---------------------------------------------------------------------------
 resource cosmosAccount 'Microsoft.DocumentDB/databaseAccounts@2024-05-15' = {
   name: cosmosAccountName
-  location: location
+  location: cosmosDbLocation
   kind: 'GlobalDocumentDB'
   properties: {
     databaseAccountOfferType: 'Standard'
@@ -46,7 +49,7 @@ resource cosmosAccount 'Microsoft.DocumentDB/databaseAccounts@2024-05-15' = {
     }
     locations: [
       {
-        locationName: location
+        locationName: cosmosDbLocation
         failoverPriority: 0
         isZoneRedundant: false
       }
