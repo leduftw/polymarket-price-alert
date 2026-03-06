@@ -142,11 +142,11 @@ All resources are created by `infra/main.bicep` via the `deploy.ps1` script.
 | **Cosmos DB Database** | SQL Database | `AlertsDB` | — | Contains the two alert containers | Included above |
 | **ActiveAlerts Container** | Cosmos DB Container | `ActiveAlerts` | — | Stores currently active price alerts (partitioned by `/marketId`) | Included above |
 | **CompletedAlerts Container** | Cosmos DB Container | `CompletedAlerts` | — | Archives triggered alerts (partitioned by `/marketId`) | Included above |
-| **Storage Account** | `Microsoft.Storage/storageAccounts` | `pmalertsfuncsa` | `westeurope` | Required by Azure Functions for internal state | Pennies/month |
-| **Log Analytics Workspace** | `Microsoft.OperationalInsights/workspaces` | `pmalerts-law` | `westeurope` | Collects logs from Application Insights (30-day retention) | Free up to 5 GB/month |
-| **Application Insights** | `Microsoft.Insights/components` | `pmalerts-ai` | `westeurope` | Monitoring and telemetry for the Function App | Free up to 5 GB/month |
-| **App Service Plan** | `Microsoft.Web/serverfarms` | `pmalerts-asp` | `westeurope` | Consumption (Dynamic) plan for the Function App | Free tier (1M executions/month) |
-| **Function App** | `Microsoft.Web/sites` | `pmalerts-func` | `westeurope` | Hosts the Node.js 22 backend (API + timer triggers) | Free tier |
+| **Storage Account** | `Microsoft.Storage/storageAccounts` | `pmalertsfuncsa` | `westeurope` | Blob/queue storage required by Azure Functions | Pennies/month |
+| **Log Analytics Workspace** | `Microsoft.OperationalInsights/workspaces` | `pmalerts-law` | `westeurope` | Central log store (30-day retention), feeds Application Insights | Free up to 5 GB/month |
+| **Application Insights** | `Microsoft.Insights/components` | `pmalerts-ai` | `westeurope` | Monitoring and telemetry for the Function App (backed by Log Analytics) | Free up to 5 GB/month |
+| **App Service Plan** | `Microsoft.Web/serverfarms` | `pmalerts-asp` | `westeurope` | Consumption (Dynamic) hosting plan for the Function App | Free tier (1M executions/month) |
+| **Function App** | `Microsoft.Web/sites` | `pmalerts-func` | `westeurope` | Node.js 22 backend — API endpoints + timer triggers (runs on the App Service Plan, uses Storage, Cosmos DB, and Application Insights) | Free tier |
 | **Static Web App** | `Microsoft.Web/staticSites` | `pmalerts-ui` | `westeurope` | Hosts the React frontend (Free tier) | $0 |
 
 **Estimated monthly cost:** Under **$1/month** for personal use. All tiers are
