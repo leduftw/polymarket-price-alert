@@ -27,7 +27,6 @@ them.
 | `backend/local.settings.json` | Backend config for `func start` | No (gitignored) |
 | `backend/local.settings.example.json` | Template — copy and fill in | Yes |
 | `frontend/.env` | Frontend dev settings (points API to `localhost`) | No (gitignored) |
-| `frontend/.env.production` | Production build settings (points API to Azure) | No (gitignored) |
 | `frontend/.env.example` | Template — copy to `.env` and fill in | Yes |
 
 ---
@@ -44,11 +43,14 @@ Edit `backend/local.settings.json` and fill in the real values for
 
 The frontend `.env` works out of the box — it sets `REACT_APP_API_BASE_URL` to
 `http://localhost:7071/api` so the frontend talks to a locally running backend.
+To point the frontend at the real Azure backend instead, set:
 
-For production builds (used by GitHub Actions), the `REACT_APP_API_BASE_URL`
-value is injected from the GitHub secret, not from `.env.production`. You only
-need `.env.production` if you run `npm run build` locally and want it to point
-at your Azure backend.
+```
+REACT_APP_API_BASE_URL=https://pmalerts-func.azurewebsites.net/api
+```
+
+For production builds (used by GitHub Actions), `REACT_APP_API_BASE_URL` is
+injected from the GitHub secret at build time.
 
 **Using the Cosmos DB emulator instead of a real Azure account:**
 

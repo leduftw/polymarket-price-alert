@@ -68,8 +68,8 @@ cd frontend && npm install && npm start
 Stop: Ctrl+C in each terminal.
 
 ## Key Things to Know
-- `local.settings.json` and `local.settings.prod.json` are gitignored — they contain real credentials
+- `local.settings.json` is gitignored — it contains real credentials
 - Cosmos DB init is lazy (not eager) — the worker starts even if DB is temporarily unavailable, so market endpoints always work
 - `getActiveAlerts` filters alerts by both `isValidAlert()` AND `marketExists()` — alerts for closed/archived markets silently disappear from the list
 - The market cache takes a few seconds to populate on startup — markets endpoints return `[]` until then
-- Frontend `.env.production` points to `https://pmalerts-func.azurewebsites.net/api`
+- Production `REACT_APP_API_BASE_URL` is injected via GitHub Actions secret, not a local file
