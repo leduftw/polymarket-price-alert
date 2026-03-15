@@ -121,9 +121,9 @@ npm install
 npm start
 ```
 
-> **"Something is already running on port 3000"?** Kill the previous process
-> first: `taskkill /F /IM node.exe` (Windows) or `pkill -f "react-scripts start"` (macOS/Linux),
-> then run `npm start` again.
+> **"Something is already running on port 3000"?** Find and kill only that
+> process: `netstat -ano | findstr :3000` to get the PID, then `taskkill /F /PID <pid>`
+> (Windows) or `lsof -ti:3000 | xargs kill` (macOS/Linux). Then run `npm start` again.
 
 Open `http://localhost:3000` — you should see markets loaded and be able to
 create alerts.

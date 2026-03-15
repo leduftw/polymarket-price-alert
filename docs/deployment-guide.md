@@ -291,14 +291,17 @@ Run `az login --use-device-code` before executing the deploy script. Standard
 
 ### "Something is already running on port 3000" error
 
-A previous `npm start` (React dev server) is still running. Kill it and try again:
+A previous React dev server is still running. Find the process on that port and
+kill it (don't use `taskkill /F /IM node.exe` — that kills all Node processes
+including the backend):
 
 ```bash
-# Windows
-taskkill /F /IM node.exe
+# Windows — find the PID, then kill it
+netstat -ano | findstr :3000
+taskkill /F /PID <pid>
 
 # macOS / Linux
-pkill -f "react-scripts start"
+lsof -ti:3000 | xargs kill
 ```
 
 ### "Port 7071 is unavailable" error
