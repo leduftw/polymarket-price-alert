@@ -41,6 +41,26 @@ cp frontend/.env.example frontend/.env
 Edit `backend/local.settings.json` and fill in the real values for
 `COSMOS_ENDPOINT`, `COSMOS_KEY`, `TELEGRAM_BOT_TOKEN`, and `TELEGRAM_CHAT_ID`.
 
+**`AzureWebJobsStorage`** — The example file defaults to
+`"UseDevelopmentStorage=true"`, which points to the local Azurite emulator. To
+use a real Azure Storage account instead, replace it with the connection string:
+
+```
+az storage account show-connection-string --name <storage-account-name> --resource-group <resource-group> -o tsv
+```
+
+**`TELEGRAM_BOT_TOKEN`** — Create a bot via
+[BotFather](https://t.me/BotFather): send `/newbot`, follow the prompts, and
+copy the token it gives you (looks like `123456789:ABCdefGhIjKlMnOpQrStUvWxYz`).
+
+**`TELEGRAM_CHAT_ID`** — Send any message to your bot, then fetch your chat ID:
+
+```
+curl https://api.telegram.org/bot<your-token>/getUpdates
+```
+
+Look for `"chat":{"id":...}` in the response. That number is your chat ID.
+
 The frontend `.env` works out of the box — it sets `REACT_APP_API_BASE_URL` to
 `http://localhost:7071/api` so the frontend talks to a locally running backend.
 To point the frontend at the real Azure backend instead, set:
