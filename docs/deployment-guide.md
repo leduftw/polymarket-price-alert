@@ -239,6 +239,20 @@ npm start
 Open `http://localhost:3000` — you should see markets loaded and be able to
 create alerts.
 
+### Stopping the local environment
+
+Press `Ctrl+C` in the frontend and backend terminals to stop them. Azurite
+runs in the background (started with `&`) and won't be stopped by `Ctrl+C`.
+To tear down everything at once:
+
+```bash
+# Windows — kills backend, Azurite, and frontend in one go
+taskkill /F /IM func.exe & taskkill /F /IM node.exe
+
+# macOS / Linux
+pkill -f func; pkill -f azurite; pkill -f "react-scripts start"
+```
+
 ---
 
 ## End-to-End Checklist
