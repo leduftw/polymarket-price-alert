@@ -16,9 +16,11 @@ const cosmos = new CosmosClient({
   key: process.env.COSMOS_KEY,
 });
 let activeContainer, completedContainer;
+let cosmosInitialized = false;
 
-// Initialization promise — awaited before any DB access
-const cosmosReady = (async () => {
+async function ensureContainers() {
+  if (cosmosInitialized) return;
+
   const { database } = await cosmos.databases.createIfNotExists({
     id: "AlertsDB",
   });
@@ -35,11 +37,8 @@ const cosmosReady = (async () => {
 
   activeContainer = aCont;
   completedContainer = cCont;
+  cosmosInitialized = true;
   console.log("Cosmos DB containers are ready: ActiveAlerts, CompletedAlerts");
-})();
-
-async function ensureContainers() {
-  await cosmosReady;
 }
 
 // ── Market cache ───────────────────────────────────────────────────────────────
