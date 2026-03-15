@@ -56,8 +56,11 @@ copy the token it gives you (looks like `123456789:ABCdefGhIjKlMnOpQrStUvWxYz`).
 **`TELEGRAM_CHAT_ID`** — Send any message to your bot, then fetch your chat ID:
 
 ```
-curl https://api.telegram.org/bot<your-token>/getUpdates
+curl --ssl-no-revoke https://api.telegram.org/bot<your-token>/getUpdates
 ```
+
+> **Windows note:** The `--ssl-no-revoke` flag is needed on Windows to avoid
+> schannel certificate revocation check errors.
 
 Look for `"chat":{"id":...}` in the response. That number is your chat ID.
 
