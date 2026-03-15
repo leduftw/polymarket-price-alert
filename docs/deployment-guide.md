@@ -210,15 +210,22 @@ For fully local development without Azure, you can use the
 2. Use the emulator values in `local.settings.json` (see the example file)
 3. Set `NODE_TLS_REJECT_UNAUTHORIZED=0` (the emulator uses a self-signed cert)
 
-### Step 2 — Start the backend
+### Step 2 — Start Azurite
 
-The frontend depends on the backend API, so start this first.
+In a terminal, start the Azure Storage emulator (needed for timer triggers
+like `pollActiveAlerts`):
 
 ```bash
-# Terminal 1 — Start Azurite (needed for timer triggers like pollActiveAlerts)
+# Terminal 1
 azurite --silent
+```
 
-# Terminal 2 — Install dependencies and start the backend
+Leave this running and open a new terminal for the next step.
+
+### Step 3 — Start the backend
+
+```bash
+# Terminal 2
 cd backend
 npm install
 func start
@@ -227,10 +234,10 @@ func start
 Wait until you see `Worker process started and initialized` and the function
 URLs listed before continuing. The backend runs on `http://localhost:7071`.
 
-### Step 3 — Start the frontend
+### Step 4 — Start the frontend
 
 ```bash
-# Terminal 3 — Install dependencies and start the frontend
+# Terminal 3
 cd frontend
 npm install
 npm start
@@ -241,17 +248,7 @@ create alerts.
 
 ### Stopping the local environment
 
-Press `Ctrl+C` in the frontend and backend terminals to stop them. Azurite
-runs in the background (started with `&`) and won't be stopped by `Ctrl+C`.
-To tear down everything at once:
-
-```bash
-# Windows — kills backend, Azurite, and frontend in one go
-taskkill /F /IM func.exe; taskkill /F /IM node.exe
-
-# macOS / Linux
-pkill -f func; pkill -f azurite; pkill -f "react-scripts start"
-```
+Press `Ctrl+C` in each of the three terminals (Azurite, backend, frontend).
 
 ---
 

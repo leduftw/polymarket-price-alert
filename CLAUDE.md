@@ -45,23 +45,25 @@ Polymarket Price Alert — full-stack app that monitors Polymarket prediction ma
 
 ## Local Development
 
-Frontend depends on backend, so start in this order:
+Frontend depends on backend, so start in this order (each in a separate terminal):
 
 ```bash
 # 1. Config (first time only)
 cp backend/local.settings.example.json backend/local.settings.json  # fill in values
 cp frontend/.env.example frontend/.env  # works out of the box
 
-# 2. Azurite (needed for timer triggers)
-azurite --silent &
+# 2. Terminal 1 — Azurite (needed for timer triggers)
+azurite --silent
 
-# 3. Backend
+# 3. Terminal 2 — Backend
 cd backend && npm install && func start
 # Wait for "Worker process started and initialized" before starting frontend
 
-# 4. Frontend (separate terminal)
+# 4. Terminal 3 — Frontend
 cd frontend && npm install && npm start
 ```
+
+Stop: Ctrl+C in each terminal.
 
 If Cosmos DB keys return 401, refresh via:
 ```bash

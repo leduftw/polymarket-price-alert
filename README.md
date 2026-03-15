@@ -90,15 +90,19 @@ out of the box (points to `http://localhost:7071/api`).
 For details on each variable and how to obtain the values, see the
 [Deployment Guide](docs/deployment-guide.md#local-development).
 
-### Step 2 — Start the backend
+### Step 2 — Start Azurite
 
-The frontend depends on the backend API, so start this first:
+In a terminal, start the Azure Storage emulator (needed for timer triggers):
 
 ```bash
-# Start Azurite in the background (needed for timer triggers)
-azurite --silent &
+azurite --silent
+```
 
-# Install dependencies and start the backend
+Leave this running and open a new terminal for the next step.
+
+### Step 3 — Start the backend
+
+```bash
 cd backend
 npm install
 func start
@@ -111,9 +115,9 @@ func start
 Wait until you see `Worker process started and initialized` and the function
 URLs listed before continuing.
 
-### Step 3 — Start the frontend
+### Step 4 — Start the frontend
 
-In a separate terminal:
+In a third terminal:
 
 ```bash
 cd frontend
@@ -130,16 +134,7 @@ create alerts.
 
 ### Stopping the local environment
 
-Press `Ctrl+C` in the frontend and backend terminals. Azurite runs in the
-background and won't be stopped by `Ctrl+C` — kill all local processes at once:
-
-```bash
-# Windows
-taskkill /F /IM func.exe; taskkill /F /IM node.exe
-
-# macOS / Linux
-pkill -f func; pkill -f azurite; pkill -f "react-scripts start"
-```
+Press `Ctrl+C` in each of the three terminals (Azurite, backend, frontend).
 
 ## 🔧 Technical Stack
 
