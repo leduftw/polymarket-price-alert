@@ -14,6 +14,7 @@ end-to-end.
 | **Azure CLI** | Provisions infrastructure from the terminal | [Install guide](https://learn.microsoft.com/cli/azure/install-azure-cli) |
 | **Node.js 22+** | Local development of frontend & backend | [nodejs.org](https://nodejs.org/) |
 | **Azure Functions Core Tools** | Run backend locally with `func start` | [Install guide](https://learn.microsoft.com/azure/azure-functions/functions-run-local) |
+| **Azurite** | Local Azure Storage emulator (needed for timer triggers) | `npm install -g azurite` |
 | **Telegram Bot** | Delivers price-alert notifications | [BotFather](https://core.telegram.org/bots#botfather) — create a bot and note the **token** and your **chat ID** |
 | **GitHub account** | Hosts source code and runs CI/CD workflows | [github.com](https://github.com/) |
 
@@ -228,12 +229,15 @@ for storage:
 **Running locally:**
 
 ```bash
-# Terminal 1 — Backend
+# Terminal 1 — Start Azurite (needed for timer triggers like pollActiveAlerts)
+azurite --silent
+
+# Terminal 2 — Backend
 cd backend
 npm install
 func start
 
-# Terminal 2 — Frontend
+# Terminal 3 — Frontend
 cd frontend
 npm install
 npm start

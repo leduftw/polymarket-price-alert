@@ -70,7 +70,8 @@ The project consists of two main components:
 ### Prerequisites
 - Node.js (v22 or higher)
 - Azure Functions Core Tools
-- Azure Cosmos DB account
+- [Azurite](https://learn.microsoft.com/azure/storage/common/storage-use-azurite) (`npm install -g azurite`) — required locally for timer-triggered functions
+- Azure Cosmos DB account (or the [Cosmos DB Emulator](https://learn.microsoft.com/azure/cosmos-db/local-emulator) for fully offline development)
 - Telegram Bot Token (for notifications)
 
 ### Frontend Setup
@@ -82,6 +83,9 @@ npm start
 
 ### Backend Setup
 ```bash
+# Start Azurite (needed for timer triggers)
+azurite --silent &
+
 cd backend
 npm install
 func start
