@@ -38,6 +38,7 @@ __azurite_db_*
 __blobstorage__
 __queuestorage__
 __tablestorage__
+AzuriteConfig
 
 # ignore everything under .vscode...
 .vscode/*
