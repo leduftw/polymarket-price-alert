@@ -53,7 +53,7 @@ cp backend/local.settings.example.json backend/local.settings.json  # fill in va
 cp frontend/.env.example frontend/.env  # works out of the box
 
 # 2. Terminal 1 — Azurite (needed for timer triggers)
-azurite --silent --location %TEMP%\azurite
+azurite --silent --location "$env:TEMP/azurite"
 
 # 3. Terminal 2 — Backend
 cd backend && npm install && func start

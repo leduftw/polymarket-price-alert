@@ -217,7 +217,7 @@ like `pollActiveAlerts`):
 
 ```bash
 # Terminal 1
-azurite --silent --location %TEMP%\azurite
+azurite --silent --location "$env:TEMP/azurite"
 ```
 
 Leave this running and open a new terminal for the next step.
