@@ -167,88 +167,9 @@ free or pay-per-use with generous free allowances.
 
 ## Local Development
 
-You can run the full stack locally for development and testing. The frontend
-depends on the backend API, so follow the steps in order.
-
-### Config files
-
-The local config files are gitignored — use the `.example` templates to create
-them.
-
-| File | Purpose | Committed? |
-|------|---------|------------|
-| `backend/local.settings.json` | Backend config for `func start` | No (gitignored) |
-| `backend/local.settings.example.json` | Template — copy and fill in | Yes |
-| `frontend/.env` | Frontend dev settings (points API to `localhost`) | No (gitignored) |
-| `frontend/.env.production` | Production build settings (points API to Azure) | No (gitignored) |
-| `frontend/.env.example` | Template — copy to `.env` and fill in | Yes |
-
-### Step 1 — Configure environment variables
-
-```bash
-cp backend/local.settings.example.json backend/local.settings.json
-cp frontend/.env.example frontend/.env
-```
-
-Edit `backend/local.settings.json` and fill in the real values for
-`COSMOS_ENDPOINT`, `COSMOS_KEY`, `TELEGRAM_BOT_TOKEN`, and `TELEGRAM_CHAT_ID`.
-
-The frontend `.env` works out of the box — it sets `REACT_APP_API_BASE_URL` to
-`http://localhost:7071/api` so the frontend talks to a locally running backend.
-
-For production builds (used by GitHub Actions), the `REACT_APP_API_BASE_URL`
-value is injected from the GitHub secret, not from `.env.production`. You only
-need `.env.production` if you run `npm run build` locally and want it to point
-at your Azure backend.
-
-**Using the Cosmos DB emulator instead of a real Azure account:**
-
-For fully local development without Azure, you can use the
-[Azure Cosmos DB Emulator](https://learn.microsoft.com/azure/cosmos-db/local-emulator):
-
-1. Start the Cosmos DB emulator
-2. Use the emulator values in `local.settings.json` (see the example file)
-3. Set `NODE_TLS_REJECT_UNAUTHORIZED=0` (the emulator uses a self-signed cert)
-
-### Step 2 — Start Azurite
-
-In a terminal, start the Azure Storage emulator (needed for timer triggers
-like `pollActiveAlerts`):
-
-```bash
-# Terminal 1
-azurite --silent --location "$env:TEMP/azurite"
-```
-
-Leave this running and open a new terminal for the next step.
-
-### Step 3 — Start the backend
-
-```bash
-# Terminal 2
-cd backend
-npm install
-func start
-```
-
-Wait until you see `Worker process started and initialized` and the function
-URLs listed before continuing. The backend runs on `http://localhost:7071`.
-
-### Step 4 — Start the frontend
-
-```bash
-# Terminal 3
-cd frontend
-npm install
-npm start
-```
-
-Open `http://localhost:3000` — you should see markets loaded and be able to
-create alerts.
-
-### Stopping the local environment
-
-Press `Ctrl+C` in each of the three terminals (Azurite, backend, frontend).
+See **[local-development.md](local-development.md)** for full setup instructions
+(prerequisites, config files, starting Azurite/backend/frontend, and
+troubleshooting).
 
 ---
 
@@ -300,32 +221,14 @@ is one of these.
 Run `az login --use-device-code` before executing the deploy script. Standard
 `az login` may fail with MFA-enabled accounts.
 
-### "Something is already running on port 3000" error
+### Cold starts (503 "Function host is not running")
 
-A previous React dev server is still running. Find the process on that port and
-kill it (don't use `taskkill /F /IM node.exe` — that kills all Node processes
-including the backend):
+The Azure Functions Consumption plan idles after ~20 minutes of inactivity.
+The first request after an idle period may return a 503 error with the message
+"Function host is not running."
 
-```bash
-# Windows — find the PID, then kill it
-netstat -ano | findstr :3000
-taskkill /F /PID <pid>
-
-# macOS / Linux
-lsof -ti:3000 | xargs kill
-```
-
-### "Port 7071 is unavailable" error
-
-A previous `func start` process is still running. Kill it and try again:
-
-```bash
-# Windows
-taskkill /F /IM func.exe
-
-# macOS / Linux
-pkill -f func
-```
+This is expected behavior — the function host self-resolves in 10-30 seconds as
+Azure spins up a new instance. Simply retry the request. No action is needed.
 
 ### Workflows not triggering
 

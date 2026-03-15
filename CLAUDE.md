@@ -45,7 +45,9 @@ Polymarket Price Alert — full-stack app that monitors Polymarket prediction ma
 
 ## Local Development
 
-Frontend depends on backend, so start in this order (each in a separate terminal):
+Full instructions are in **[docs/local-development.md](docs/local-development.md)**.
+
+Quick-start reference (each in a separate terminal):
 
 ```bash
 # 1. Config (first time only)
@@ -64,12 +66,6 @@ cd frontend && npm install && npm start
 ```
 
 Stop: Ctrl+C in each terminal.
-
-If Cosmos DB keys return 401, refresh via:
-```bash
-az cosmosdb keys list --name pmalerts-cdb --resource-group pmalerts-rg
-az storage account keys list --account-name pmalertsfuncsa --resource-group pmalerts-rg
-```
 
 ## Key Things to Know
 - `local.settings.json` and `local.settings.prod.json` are gitignored — they contain real credentials

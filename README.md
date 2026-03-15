@@ -4,6 +4,8 @@ A full-stack web application that allows users to create and manage price alerts
 Free alternative to expensive Polymarket alert services. Built in 2 days with Azure (<$1/month) vs $9.99/month subscriptions on PolyAlertHub.
 Get notified via Telegram when market prices reach your specified thresholds.
 
+**Live app:** https://ashy-sand-0268de503.6.azurestaticapps.net
+
 ## 🎯 Purpose
 
 This application helps traders and analysts monitor Polymarket prediction markets by:
@@ -68,73 +70,18 @@ The project consists of two main components:
 ## 🚀 Getting Started
 
 ### Prerequisites
-- Node.js (v22 or higher)
-- Azure Functions Core Tools
-- [Azurite](https://learn.microsoft.com/azure/storage/common/storage-use-azurite) (`npm install -g azurite`) — required locally for timer-triggered functions
-- Azure Cosmos DB account (or the [Cosmos DB Emulator](https://learn.microsoft.com/azure/cosmos-db/local-emulator) for fully offline development)
-- Telegram Bot Token (for notifications)
+- Node.js 22+, Azure Functions Core Tools, Azurite, Cosmos DB account, Telegram Bot Token
 
-### Step 1 — Configure environment variables
+For detailed prerequisites and install links, see the [Local Development Guide](docs/local-development.md).
 
-Example config files are provided in the repo — copy them and fill in your values:
+### Quick start
 
 ```bash
-cp backend/local.settings.example.json backend/local.settings.json
+cp backend/local.settings.example.json backend/local.settings.json  # fill in values
 cp frontend/.env.example frontend/.env
 ```
 
-Edit `backend/local.settings.json` and fill in `COSMOS_ENDPOINT`, `COSMOS_KEY`,
-`TELEGRAM_BOT_TOKEN`, and `TELEGRAM_CHAT_ID`. The frontend `.env` works
-out of the box (points to `http://localhost:7071/api`).
-
-For details on each variable and how to obtain the values, see the
-[Deployment Guide](docs/deployment-guide.md#local-development).
-
-### Step 2 — Start Azurite
-
-In a terminal, start the Azure Storage emulator (needed for timer triggers):
-
-```bash
-azurite --silent --location "$env:TEMP/azurite"
-```
-
-Leave this running and open a new terminal for the next step.
-
-### Step 3 — Start the backend
-
-```bash
-cd backend
-npm install
-func start
-```
-
-> **"Port 7071 is unavailable"?** A previous `func start` is still running.
-> Kill it first: `taskkill /F /IM func.exe` (Windows) or `pkill -f func` (macOS/Linux),
-> then run `func start` again.
-
-Wait until you see `Worker process started and initialized` and the function
-URLs listed before continuing.
-
-### Step 4 — Start the frontend
-
-In a third terminal:
-
-```bash
-cd frontend
-npm install
-npm start
-```
-
-> **"Something is already running on port 3000"?** Find and kill only that
-> process: `netstat -ano | findstr :3000` to get the PID, then `taskkill /F /PID <pid>`
-> (Windows) or `lsof -ti:3000 | xargs kill` (macOS/Linux). Then run `npm start` again.
-
-Open `http://localhost:3000` — you should see markets loaded and be able to
-create alerts.
-
-### Stopping the local environment
-
-Press `Ctrl+C` in each of the three terminals (Azurite, backend, frontend).
+Then start Azurite, the backend, and the frontend in three separate terminals. Full step-by-step instructions are in **[docs/local-development.md](docs/local-development.md)**.
 
 ## 🔧 Technical Stack
 
