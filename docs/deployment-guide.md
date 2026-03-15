@@ -289,6 +289,18 @@ is one of these.
 Run `az login --use-device-code` before executing the deploy script. Standard
 `az login` may fail with MFA-enabled accounts.
 
+### "Something is already running on port 3000" error
+
+A previous `npm start` (React dev server) is still running. Kill it and try again:
+
+```bash
+# Windows
+taskkill /F /IM node.exe
+
+# macOS / Linux
+pkill -f "react-scripts start"
+```
+
 ### "Port 7071 is unavailable" error
 
 A previous `func start` process is still running. Kill it and try again:
