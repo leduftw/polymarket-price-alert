@@ -135,7 +135,7 @@ background and won't be stopped by `Ctrl+C` — kill all local processes at once
 
 ```bash
 # Windows
-taskkill /F /IM func.exe & taskkill /F /IM node.exe
+taskkill /F /IM func.exe; taskkill /F /IM node.exe
 
 # macOS / Linux
 pkill -f func; pkill -f azurite; pkill -f "react-scripts start"

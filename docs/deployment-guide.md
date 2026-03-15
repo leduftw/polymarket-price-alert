@@ -247,7 +247,7 @@ To tear down everything at once:
 
 ```bash
 # Windows — kills backend, Azurite, and frontend in one go
-taskkill /F /IM func.exe & taskkill /F /IM node.exe
+taskkill /F /IM func.exe; taskkill /F /IM node.exe
 
 # macOS / Linux
 pkill -f func; pkill -f azurite; pkill -f "react-scripts start"
