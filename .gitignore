@@ -33,6 +33,12 @@ frontend/.DS_Store
 backend/endpoints.txt
 .claude/
 
+# Azurite storage emulator data files
+__azurite_db_*
+__blobstorage__
+__queuestorage__
+__tablestorage__
+
 # ignore everything under .vscode...
 .vscode/*
 

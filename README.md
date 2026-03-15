@@ -95,7 +95,7 @@ For details on each variable and how to obtain the values, see the
 In a terminal, start the Azure Storage emulator (needed for timer triggers):
 
 ```bash
-azurite --silent
+azurite --silent --location %TEMP%\azurite
 ```
 
 Leave this running and open a new terminal for the next step.
