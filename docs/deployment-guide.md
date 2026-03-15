@@ -289,6 +289,18 @@ is one of these.
 Run `az login --use-device-code` before executing the deploy script. Standard
 `az login` may fail with MFA-enabled accounts.
 
+### "Port 7071 is unavailable" error
+
+A previous `func start` process is still running. Kill it and try again:
+
+```bash
+# Windows
+taskkill /F /IM func.exe
+
+# macOS / Linux
+pkill -f func
+```
+
 ### Workflows not triggering
 
 Ensure the three GitHub secrets are set correctly (see Step 2). Workflow runs

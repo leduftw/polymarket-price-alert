@@ -104,6 +104,10 @@ npm install
 func start
 ```
 
+> **"Port 7071 is unavailable"?** A previous `func start` is still running.
+> Kill it first: `taskkill /F /IM func.exe` (Windows) or `pkill -f func` (macOS/Linux),
+> then run `func start` again.
+
 Wait until you see `Worker process started and initialized` and the function
 URLs listed before continuing.
 
