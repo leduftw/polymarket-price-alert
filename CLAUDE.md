@@ -45,16 +45,24 @@ Polymarket Price Alert — full-stack app that monitors Polymarket prediction ma
 
 ## Local Development
 
-```bash
-# Backend (needs Azurite running for timer trigger)
-azurite --silent &
-cd backend && func start
+Frontend depends on backend, so start in this order:
 
-# Frontend (separate terminal)
-cd frontend && npm start
+```bash
+# 1. Config (first time only)
+cp backend/local.settings.example.json backend/local.settings.json  # fill in values
+cp frontend/.env.example frontend/.env  # works out of the box
+
+# 2. Azurite (needed for timer triggers)
+azurite --silent &
+
+# 3. Backend
+cd backend && npm install && func start
+# Wait for "Worker process started and initialized" before starting frontend
+
+# 4. Frontend (separate terminal)
+cd frontend && npm install && npm start
 ```
 
-Config: copy `backend/local.settings.example.json` → `backend/local.settings.json` and fill in values.
 If Cosmos DB keys return 401, refresh via:
 ```bash
 az cosmosdb keys list --name pmalerts-cdb --resource-group pmalerts-rg

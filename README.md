@@ -74,34 +74,51 @@ The project consists of two main components:
 - Azure Cosmos DB account (or the [Cosmos DB Emulator](https://learn.microsoft.com/azure/cosmos-db/local-emulator) for fully offline development)
 - Telegram Bot Token (for notifications)
 
-### Frontend Setup
+### Step 1 — Configure environment variables
+
+Example config files are provided in the repo — copy them and fill in your values:
+
+```bash
+cp backend/local.settings.example.json backend/local.settings.json
+cp frontend/.env.example frontend/.env
+```
+
+Edit `backend/local.settings.json` and fill in `COSMOS_ENDPOINT`, `COSMOS_KEY`,
+`TELEGRAM_BOT_TOKEN`, and `TELEGRAM_CHAT_ID`. The frontend `.env` works
+out of the box (points to `http://localhost:7071/api`).
+
+For details on each variable and how to obtain the values, see the
+[Deployment Guide](docs/deployment-guide.md#local-development).
+
+### Step 2 — Start the backend
+
+The frontend depends on the backend API, so start this first:
+
+```bash
+# Start Azurite in the background (needed for timer triggers)
+azurite --silent &
+
+# Install dependencies and start the backend
+cd backend
+npm install
+func start
+```
+
+Wait until you see `Worker process started and initialized` and the function
+URLs listed before continuing.
+
+### Step 3 — Start the frontend
+
+In a separate terminal:
+
 ```bash
 cd frontend
 npm install
 npm start
 ```
 
-### Backend Setup
-```bash
-# Start Azurite (needed for timer triggers)
-azurite --silent &
-
-cd backend
-npm install
-func start
-```
-
-### Environment Variables
-
-Example config files are provided in the repo — copy them and fill in your values:
-
-```bash
-cp frontend/.env.example frontend/.env
-cp backend/local.settings.example.json backend/local.settings.json
-```
-
-For details on each variable and how to obtain the values, see the
-[Deployment Guide](docs/deployment-guide.md#local-development).
+Open `http://localhost:3000` — you should see markets loaded and be able to
+create alerts.
 
 ## 🔧 Technical Stack
 

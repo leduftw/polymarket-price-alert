@@ -167,84 +167,77 @@ free or pay-per-use with generous free allowances.
 
 ## Local Development
 
-You can run the full stack locally for development and testing. The local config
-files are gitignored — use the `.example` templates to create them.
+You can run the full stack locally for development and testing. The frontend
+depends on the backend API, so follow the steps in order.
 
-### Frontend
+### Config files
 
-The React frontend uses environment variables prefixed with `REACT_APP_`.
+The local config files are gitignored — use the `.example` templates to create
+them.
 
 | File | Purpose | Committed? |
 |------|---------|------------|
-| `frontend/.env` | Local dev settings (points API to `localhost`) | No (gitignored) |
+| `backend/local.settings.json` | Backend config for `func start` | No (gitignored) |
+| `backend/local.settings.example.json` | Template — copy and fill in | Yes |
+| `frontend/.env` | Frontend dev settings (points API to `localhost`) | No (gitignored) |
 | `frontend/.env.production` | Production build settings (points API to Azure) | No (gitignored) |
 | `frontend/.env.example` | Template — copy to `.env` and fill in | Yes |
 
-Create your local env file:
+### Step 1 — Configure environment variables
 
 ```bash
-cd frontend
-cp .env.example .env
+cp backend/local.settings.example.json backend/local.settings.json
+cp frontend/.env.example frontend/.env
 ```
 
-The `.env` file sets `REACT_APP_API_BASE_URL` to `http://localhost:7071/api`
-so the frontend talks to a locally running Function App.
+Edit `backend/local.settings.json` and fill in the real values for
+`COSMOS_ENDPOINT`, `COSMOS_KEY`, `TELEGRAM_BOT_TOKEN`, and `TELEGRAM_CHAT_ID`.
+
+The frontend `.env` works out of the box — it sets `REACT_APP_API_BASE_URL` to
+`http://localhost:7071/api` so the frontend talks to a locally running backend.
 
 For production builds (used by GitHub Actions), the `REACT_APP_API_BASE_URL`
 value is injected from the GitHub secret, not from `.env.production`. You only
 need `.env.production` if you run `npm run build` locally and want it to point
 at your Azure backend.
 
-### Backend
-
-Azure Functions uses `local.settings.json` for local configuration.
-
-| File | Purpose | Committed? |
-|------|---------|------------|
-| `backend/local.settings.json` | Local settings for `func start` | No (gitignored) |
-| `backend/local.settings.example.json` | Template — copy and fill in | Yes |
-
-Create your local settings file:
-
-```bash
-cd backend
-cp local.settings.example.json local.settings.json
-```
-
-Then fill in the real values for `COSMOS_ENDPOINT`, `COSMOS_KEY`,
-`TELEGRAM_BOT_TOKEN`, and `TELEGRAM_CHAT_ID`.
-
-**Using the Cosmos DB emulator locally:**
+**Using the Cosmos DB emulator instead of a real Azure account:**
 
 For fully local development without Azure, you can use the
-[Azure Cosmos DB Emulator](https://learn.microsoft.com/azure/cosmos-db/local-emulator)
-and [Azurite](https://learn.microsoft.com/azure/storage/common/storage-use-azurite)
-for storage:
+[Azure Cosmos DB Emulator](https://learn.microsoft.com/azure/cosmos-db/local-emulator):
 
 1. Start the Cosmos DB emulator
-2. Run `azurite` in a terminal
-3. Use the emulator values in `local.settings.json` (see the example file)
-4. Set `NODE_TLS_REJECT_UNAUTHORIZED=0` (the emulator uses a self-signed cert)
+2. Use the emulator values in `local.settings.json` (see the example file)
+3. Set `NODE_TLS_REJECT_UNAUTHORIZED=0` (the emulator uses a self-signed cert)
 
-**Running locally:**
+### Step 2 — Start the backend
+
+The frontend depends on the backend API, so start this first.
 
 ```bash
 # Terminal 1 — Start Azurite (needed for timer triggers like pollActiveAlerts)
 azurite --silent
 
-# Terminal 2 — Backend
+# Terminal 2 — Install dependencies and start the backend
 cd backend
 npm install
 func start
+```
 
-# Terminal 3 — Frontend
+Wait until you see `Worker process started and initialized` and the function
+URLs listed before continuing. The backend runs on `http://localhost:7071`.
+
+### Step 3 — Start the frontend
+
+```bash
+# Terminal 3 — Install dependencies and start the frontend
 cd frontend
 npm install
 npm start
 ```
 
-The frontend runs on `http://localhost:3000` and the backend on
-`http://localhost:7071`.
+Open `http://localhost:3000` — you should see markets loaded and be able to
+create alerts.
 
 ---
 
