@@ -1,129 +1,97 @@
-# Polymarket Price Alert System
+# polymarket-price-alert
 
-A full-stack web application that allows users to create and manage price alerts for Polymarket prediction markets.
-Free alternative to expensive Polymarket alert services. Built in 2 days with Azure (<$1/month) vs $9.99/month subscriptions on PolyAlertHub.
-Get notified via Telegram when market prices reach your specified thresholds.
+Telegram notifications when a Polymarket prediction market crosses a price you
+care about.
 
-**Live app:** https://ashy-sand-0268de503.6.azurestaticapps.net
+Pick a market, set a threshold, get a message when it's hit. A timer-triggered
+Azure Function polls active alerts every 30 seconds and moves them to a
+completed list once they fire.
 
-## 🎯 Purpose
+## Scope
 
-This application helps traders and analysts monitor Polymarket prediction markets by:
-- Setting custom price alerts for specific market outcomes
-- Receiving Telegram notifications when price thresholds are met
-- Tracking alert history and market performance
-- Providing an intuitive web interface for alert management
+This is a personal tool, and it's worth being upfront about what that means
+before you read further:
 
-## 🏗️ Architecture
+- **One recipient.** Every notification goes to the single `TELEGRAM_CHAT_ID`
+  configured at deploy time. There are no per-user destinations.
+- **No accounts, no auth.** Any visitor to a running instance can create and
+  see alerts, and those alerts notify the deployer's chat.
+- **The interface is functional, not designed.** A search box, a form, a list.
 
-The project consists of two main components:
+So it's built for one person to run for themselves. If you want it, deploy your
+own instance from the Bicep templates below rather than using someone else's —
+the multi-user version of this would need real accounts and per-user chat IDs,
+and none of that is here.
 
-### Frontend (React)
-- **Technology**: React 19.2 with modern hooks
-- **Features**: Market search, alert creation form, active alerts dashboard
-- **Communication**: REST API calls to backend
+It costs under $1/month on Azure, which was the point: the paid alert services
+in this space charge monthly for what amounts to a polling loop and a bot token.
 
-### Backend (Azure Functions)
-- **Technology**: Node.js 22 serverless functions hosted on Azure (v4 programming model)
-- **Database**: Azure Cosmos DB (serverless) for alert storage
-- **External APIs**: Polymarket Gamma API for market data
-- **Notifications**: Telegram Bot API for alert delivery
-- **Scheduling**: Azure Functions timer triggers for polling alerts
+## Architecture
 
-## ✨ Current Functionalities
+**Frontend** — React 19.2, deployed to Azure Static Web Apps. Market search,
+alert creation, active-alert dashboard. Talks to the backend over REST.
 
-### Market Management
-- **Market Search**: Search and browse active Polymarket prediction markets
-- **Market Details**: View market outcomes with current prices
-- **Market Cache**: Automatic caching and refresh of market data every 5 minutes
+**Backend** — Azure Functions v4 on Node.js 22, consumption plan:
 
-### Alert System
-- **Create Alerts**: Set price alerts for specific market outcomes
-- **Alert Types**: Support for "above" and "below" threshold alerts
-- **Validation**: Client and server-side validation to prevent invalid alerts
-- **Duplicate Prevention**: Automatic detection and prevention of duplicate alerts
+| Function | Trigger | Role |
+| --- | --- | --- |
+| `getMarkets` | HTTP | Search/browse active markets |
+| `getMarketById` | HTTP | Market detail with outcome prices |
+| `createActiveAlert` | HTTP | Create an alert (validated, deduplicated) |
+| `getActiveAlerts` | HTTP | List pending alerts |
+| `getCompletedAlerts` | HTTP | List alerts that have fired |
+| `pollActiveAlerts` | Timer, 30s | Check thresholds, notify, archive |
 
-### Data Persistence
-- **Active Alerts**: Store and manage currently active price alerts
-- **Completed Alerts**: Archive triggered alerts with completion details
+**Storage** — Azure Cosmos DB, serverless tier. Two collections: active and
+completed alerts.
 
-### Notification System
-- **Telegram Integration**: Send instant notifications via Telegram bot
-- **Alert Polling**: Automated background checking of alert conditions (every 30 seconds)
-- **Price Monitoring**: Continuous monitoring of market prices via timer-triggered functions
+**Upstream** — Polymarket's Gamma API for market data, cached and refreshed
+every 5 minutes so the poller isn't hammering it. Telegram Bot API for delivery.
 
-### API Endpoints
+### API
 
 | Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/markets` | GET | Fetch active markets (with optional `?q=` search query) |
-| `/markets/{id}` | GET | Get detailed market information with outcomes and prices |
-| `/active-alerts` | GET | Retrieve all active alerts |
-| `/active-alerts` | POST | Create a new price alert |
-| `/completed-alerts` | GET | Get history of triggered alerts |
+| --- | --- | --- |
+| `/markets` | GET | Active markets, optional `?q=` search |
+| `/markets/{id}` | GET | Market detail with outcomes and prices |
+| `/active-alerts` | GET | All pending alerts |
+| `/active-alerts` | POST | Create an alert |
+| `/completed-alerts` | GET | History of triggered alerts |
 
-### Background Services
-- **pollActiveAlerts**: Timer-triggered function that checks alert conditions every 30 seconds
-- **Market Cache Refresh**: Automatic updates of market data from Polymarket Gamma API every 5 minutes
-- **Alert Processing**: Moves triggered alerts from active to completed status
+Alerts support `above` and `below` thresholds, with validation on both client
+and server and duplicate detection on create.
 
-## 🚀 Getting Started
+## Running it locally
 
-### Prerequisites
-- Node.js 22+, Azure Functions Core Tools, Azurite, Cosmos DB account, Telegram Bot Token
-
-For detailed prerequisites and install links, see the [Local Development Guide](docs/local-development.md).
-
-### Quick start
+Requires Node.js 22+, Azure Functions Core Tools, Azurite, a Cosmos DB account
+and a Telegram bot token.
 
 ```bash
 cp backend/local.settings.example.json backend/local.settings.json  # fill in values
 cp frontend/.env.example frontend/.env
 ```
 
-Then start Azurite, the backend, and the frontend in three separate terminals. Full step-by-step instructions are in **[docs/local-development.md](docs/local-development.md)**.
+Then start Azurite, the backend and the frontend in three terminals. Full
+step-by-step instructions, including how to get your Telegram chat ID, are in
+[docs/local-development.md](docs/local-development.md).
 
-## 🔧 Technical Stack
+## Deploying your own
 
-**Frontend:**
-- React 19.2
-- Modern CSS with inline styles
-
-**Backend:**
-- Azure Functions v4 programming model (Node.js 22)
-- Azure Cosmos DB (serverless)
-- node-fetch for HTTP requests
-
-**External Services:**
-- Polymarket Gamma API
-- Telegram Bot API
-
-**Infrastructure:**
-- Azure Bicep templates (`infra/main.bicep`) for repeatable provisioning
-- GitHub Actions for Azure Static Web Apps deployment (frontend)
-- GitHub Actions for Azure Functions deployment (backend)
-
-## 🏗️ Infrastructure Setup
-
-Azure resources are defined as Infrastructure-as-Code using [Bicep](https://learn.microsoft.com/en-us/azure/azure-resource-manager/bicep/overview) templates in the `infra/` directory.
-
-### Quick deploy
+Infrastructure is Bicep, in `infra/`:
 
 ```powershell
 az login --use-device-code
 .\infra\deploy.ps1 -TelegramBotToken "<your-token>" -TelegramChatId "<your-chat-id>"
 ```
 
-This creates: Cosmos DB (serverless, northeurope), Function App (consumption), Static Web App (free), Storage Account, Application Insights, and Log Analytics — all in westeurope (except Cosmos DB).
+That provisions Cosmos DB (serverless, northeurope), a Function App
+(consumption), a Static Web App (free tier), a storage account, Application
+Insights and Log Analytics — everything but Cosmos in westeurope.
 
-After deployment, configure the three required GitHub secrets and push to `main` to deploy your code.
+Then set the three GitHub secrets and push to `main`; GitHub Actions deploys
+frontend and backend. The end-to-end guide, including secrets and
+troubleshooting, is in [docs/deployment-guide.md](docs/deployment-guide.md).
 
-> 📖 **For the full end-to-end setup guide** (secrets, CI/CD, troubleshooting), see **[docs/deployment-guide.md](docs/deployment-guide.md)**.
+## License
 
-## 📝 License
-
-This project is licensed under the terms specified in the LICENSE file.
-
-## 🤝 Contributing
-
-This is a personal project for monitoring Polymarket price alerts. Feel free to fork and adapt for your own use cases.
+MIT — see [LICENSE](LICENSE).
